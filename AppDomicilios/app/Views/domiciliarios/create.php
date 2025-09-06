@@ -28,6 +28,7 @@
       </div>
 
       <div class="row g-3 mb-3">
+
         <!-- Cédula -->
         <div class="col-md-6">
           <label class="form-label">Cédula</label>
