@@ -6,46 +6,69 @@
       <h4 class="mb-0">Crear Cuadrante</h4>
     </div>
 
-    <form method="post" action="/cuadrantes/store" class="mt-3" id="form-cuadrante">
+    <?php if (session('error')): ?>
+      <div class="alert alert-danger"><?= esc(session('error')) ?></div>
+    <?php endif; ?>
+    <?php if (session('success')): ?>
+      <div class="alert alert-success"><?= esc(session('success')) ?></div>
+    <?php endif; ?>
 
-      
+    <form method="post" action="/cuadrantes/store" class="mt-3" id="form-cuadrante">
+      <?= csrf_field() ?>
+
       <div class="row g-3 mb-3">
         <!-- Nombre -->
         <div class="col-md-6">
           <label class="form-label">Nombre</label>
           <div class="input-group">
             <span class="input-group-text"><i class="fa-solid fa-tag"></i></span>
-            <input class="form-control" name="nombre" placeholder="Nombre del cuadrante" required>
+            <input class="form-control" name="nombre" placeholder="Nombre del cuadrante" required
+                   value="<?= esc(old('nombre')) ?>">
           </div>
         </div>
 
-        <!-- Precio -->
+        <!-- Precio (se mapea a precio_base en el controller) -->
         <div class="col-md-6">
           <label class="form-label">Precio del cuadrante</label>
           <div class="input-group">
             <span class="input-group-text"><i class="fa-solid fa-dollar-sign"></i></span>
-            <input class="form-control" name="precio" placeholder="Ej: 5000" type="number" min="0" step="0.01" required>
+            <input class="form-control" name="precio" placeholder="Ej: 7000" type="number" min="0" step="0.01" required
+                   value="<?= esc(old('precio')) ?>">
           </div>
+        </div>
+      </div>
+
+      <!-- Localidad (opcional) -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Localidad (opcional)</label>
+          <input class="form-control" name="localidad" placeholder="Ej: Norte–Centro" value="<?= esc(old('localidad')) ?>">
+        </div>
+        <div class="col-md-6">
+          <!-- Espacio para futuro: estado activo, etc. -->
         </div>
       </div>
 
       <!-- Coordenadas -->
       <div class="mb-3 position-relative">
-        <label class="form-label">Coordenadas</label>
+        <label class="form-label">Coordenadas (formato [[lat,lon],[lat,lon],...])</label>
         <div class="input-group">
           <span class="input-group-text"><i class="fa-solid fa-map-pin"></i></span>
-          <textarea class="form-control" id="coordsDisplay" rows="3" name="coordenadas" placeholder="Ej: [[lat,lng],[lat,lng],...]"></textarea>
+          <textarea class="form-control" id="coordsDisplay" rows="3" name="coordenadas"
+                    placeholder='Ej: [[10.97,-74.79],[10.98,-74.78],[10.96,-74.78]]'><?= esc(old('coordenadas')) ?></textarea>
         </div>
-        <small class="text-muted">Puedes editar manualmente o dibujar en el mapa</small>
+        <small class="text-muted">Puedes editar manualmente o hacer click en el mapa para ir agregando puntos.</small>
       </div>
 
-      <!-- Barrios (solo lectura) -->
+      <!-- Barrios visual + oculto para enviar -->
       <div class="mb-3 position-relative">
         <label class="form-label">Barrios</label>
         <div class="input-group">
           <span class="input-group-text"><i class="fa-solid fa-city"></i></span>
-          <textarea class="form-control" id="barriosDisplay" rows="2" readonly placeholder="Los barrios se llenarán automáticamente"></textarea>
+          <textarea class="form-control" id="barriosDisplay" rows="2" readonly
+                    placeholder="Se llenará automáticamente"><?= esc(old('barrios')) ?></textarea>
         </div>
+        <input type="hidden" name="barrios" id="barrios" value="<?= esc(old('barrios')) ?>">
       </div>
 
       <!-- Mapa -->
@@ -54,7 +77,7 @@
 
       <!-- Botones -->
       <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-brand"><i class="fa-solid fa-save me-1"></i>Guardar</button>
+        <button class="btn btn-brand" type="submit"><i class="fa-solid fa-save me-1"></i>Guardar</button>
         <a href="/cuadrantes" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Cancelar</a>
         <button type="button" id="resetMap" class="btn btn-outline-danger ms-auto"><i class="fa-solid fa-trash me-1"></i>Limpiar</button>
       </div>
@@ -64,85 +87,143 @@
 </div>
 
 <?php $scripts = '
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+
 <script>
-  const lat = 10.968540; const lng = -74.781320;
-  const map = L.map("map").setView([lat,lng], 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{ maxZoom: 19 }).addTo(map);
+  // --- Mapa base ---
+  const lat = 10.968540, lng = -74.781320;
+  const map = L.map("map").setView([lat, lng], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
-  let poly = null;
-  const coordsDisplay = document.getElementById("coordsDisplay");
-  const barriosDisplay = document.getElementById("barriosDisplay");
+  // Capas
+  let polygonLayer = null;
+  let lineLayer    = null;
+  let markerGroup  = L.layerGroup().addTo(map);
 
+  // Estado actual de puntos [[lat,lon], ...]
+  let currentPoints = [];
+
+  // --- Refs del formulario ---
+  const coordsDisplay  = document.getElementById("coordsDisplay"); // textarea visible [[lat,lon],...]
+  const barriosDisplay = document.getElementById("barriosDisplay"); // textarea solo lectura
+  const barriosHidden  = document.getElementById("barrios");        // input hidden que se envía al backend
+  const resetBtn       = document.getElementById("resetMap");
+
+  // --- Carga del GeoJSON de barrios ---
   let barriosGeoJSON = null;
-  fetch("/geojson/Barrios_de_Barranquilla_según_POT_20250905.geojson")
+  fetch("/geojson/barrios_barranquilla.geojson")
     .then(res => res.json())
     .then(data => barriosGeoJSON = data)
     .catch(err => console.error("No se pudo cargar el GeoJSON:", err));
 
-  function obtenerBarrios(points){
-    if(!barriosGeoJSON || points.length < 3) return "";
-    if(points[0][0] !== points[points.length-1][0] || points[0][1] !== points[points.length-1][1]){
-      points.push(points[0]);
-    }
-    const polyCoords = points.map(p => [p[1], p[0]]);
-    const cuadrantePolygon = turf.polygon([polyCoords]);
-    let barriosDentro = [];
-    barriosGeoJSON.features.forEach(layer => {
-      if(layer.geometry.type === "Polygon"){
-        const barrioPolygon = turf.polygon(layer.geometry.coordinates);
-        if(turf.booleanIntersects(cuadrantePolygon, barrioPolygon)){
-          barriosDentro.push(layer.properties.nombre);
-        }
-      }
-      if(layer.geometry.type === "MultiPolygon"){
-        const barrioPolygon = turf.multiPolygon(layer.geometry.coordinates);
-        if(turf.booleanIntersects(cuadrantePolygon, barrioPolygon)){
-          barriosDentro.push(layer.properties.nombre);
-        }
-      }
-    });
-    return barriosDentro.join(", ");
+  // --- Utilidades ---
+  function setBarriosText(value) {
+    const v = value || "";
+    barriosDisplay.value = v;
+    barriosHidden.value  = v;
   }
 
-  coordsDisplay.addEventListener("input", function(){
-    try {
-      const points = JSON.parse(coordsDisplay.value);
-      if(Array.isArray(points) && points.length >= 3){
-        if(poly) map.removeLayer(poly);
-        poly = L.polygon(points, { color: "#FF6B00", fillOpacity: 0.2 }).addTo(map);
-        map.fitBounds(poly.getBounds());
-        barriosDisplay.value = obtenerBarrios(points);
-      }
-    } catch (e) { console.warn("Formato inválido de coordenadas"); }
-  });
+  function ringClosed(points) {
+    if (!Array.isArray(points) || points.length === 0) return [];
+    const first = points[0];
+    const last  = points[points.length - 1];
+    const same  = first && last && first[0] === last[0] && first[1] === last[1];
+    return same ? points.slice() : [...points, first];
+  }
 
-  map.on("click", function(e){
-    const latlng = [e.latlng.lat, e.latlng.lng];
-    let points = [];
-    if(coordsDisplay.value){
-      try { points = JSON.parse(coordsDisplay.value); } catch(e){}
+  function obtenerBarrios(points) {
+    if (!barriosGeoJSON || !Array.isArray(points) || points.length < 3) return "";
+    // Turf usa [lon, lat]
+    const closed   = ringClosed(points).map(p => [p[1], p[0]]);
+    const cuadrantePolygon = turf.polygon([closed]);
+    const nombres = new Set();
+
+    (barriosGeoJSON.features || []).forEach(f => {
+      try {
+        const g = f.geometry;
+        if (!g) return;
+        let polyF = null;
+        if (g.type === "Polygon")      polyF = turf.polygon(g.coordinates);
+        else if (g.type === "MultiPolygon") polyF = turf.multiPolygon(g.coordinates);
+        if (polyF && turf.booleanIntersects(cuadrantePolygon, polyF)) {
+          const props = f.properties || {};
+          const name = props.nombre || props.Name || props.BARRIO || "Barrio s/n";
+          nombres.add(name);
+        }
+      } catch(e) {}
+    });
+
+    return Array.from(nombres).join(", ");
+  }
+
+  function redraw() {
+    // Limpia capas
+    if (polygonLayer) { map.removeLayer(polygonLayer); polygonLayer = null; }
+    if (lineLayer)    { map.removeLayer(lineLayer);    lineLayer    = null; }
+    markerGroup.clearLayers();
+
+    // Siempre sincroniza el textarea con el estado actual
+    coordsDisplay.value = JSON.stringify(currentPoints);
+
+    if (currentPoints.length === 0) {
+      setBarriosText("");
+      return;
     }
-    points.push(latlng);
-    if(poly) map.removeLayer(poly);
-    poly = L.polygon(points, { color: "#FF6B00", fillOpacity: 0.2 }).addTo(map);
-    coordsDisplay.value = JSON.stringify(points);
-    barriosDisplay.value = obtenerBarrios(points);
+
+    // Marca los puntos
+    currentPoints.forEach(p => L.circleMarker(p, { radius: 5 }).addTo(markerGroup));
+
+    if (currentPoints.length < 3) {
+      // Dibuja polilínea provisional
+      lineLayer = L.polyline(currentPoints, { weight: 2, dashArray: "4 4" }).addTo(map);
+      map.fitBounds(lineLayer.getBounds(), { padding: [10,10] });
+      setBarriosText(""); // aún no hay barrios
+      return;
+    }
+
+    // Con 3+ puntos dibuja polígono y calcula barrios
+    polygonLayer = L.polygon(currentPoints, { color: "#FF6B00", weight: 2, fillOpacity: 0.2 }).addTo(map);
+    map.fitBounds(polygonLayer.getBounds(), { padding: [10,10] });
+
+    const barrios = obtenerBarrios(currentPoints);
+    setBarriosText(barrios);
+  }
+
+  // --- Eventos ---
+  // Clic en el mapa -> agrega punto y redibuja
+  map.on("click", (e) => {
+    currentPoints.push([e.latlng.lat, e.latlng.lng]);
+    redraw();
   });
 
-  document.getElementById("resetMap").addEventListener("click", ()=> {
-    coordsDisplay.value = "";
-    barriosDisplay.value = "";
-    if(poly) map.removeLayer(poly);
+  // Edición manual del textarea -> reinterpreta puntos y redibuja
+  coordsDisplay.addEventListener("input", () => {
+    try {
+      const pts = JSON.parse(coordsDisplay.value);
+      currentPoints = Array.isArray(pts) ? pts : [];
+    } catch { currentPoints = []; }
+    redraw();
   });
+
+  // Botón limpiar
+  resetBtn.addEventListener("click", () => {
+    currentPoints = [];
+    redraw();
+  });
+
+  // Si viene algo precargado (old()), lo dibujamos al cargar
+  (function initFromOld() {
+    if (!coordsDisplay.value) return;
+    try {
+      const pts = JSON.parse(coordsDisplay.value);
+      currentPoints = Array.isArray(pts) ? pts : [];
+      redraw();
+    } catch {}
+  })();
 </script>
 '; ?>
 
 <?php $content = ob_get_clean(); echo view("layouts/app", compact("content","title","scripts")); ?>
-
-
-
-
-
-
 
