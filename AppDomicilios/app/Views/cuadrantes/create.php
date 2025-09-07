@@ -7,7 +7,7 @@
     </div>
 
     <form method="post" action="/cuadrantes/store" class="mt-3" id="form-cuadrante">
-
+      <?= csrf_field() ?> <!-- Seguridad contra CSRF -->
       
       <div class="row g-3 mb-3">
         <!-- Nombre -->
@@ -19,6 +19,15 @@
           </div>
         </div>
 
+        <!-- Localidad -->
+        <div class="col-md-6">
+          <label class="form-label">Localidad</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-tag"></i></span>
+            <input class="form-control" name="localidad" placeholder="Ej:(Norte–Centro, Sur Oriente, ...)" required>
+          </div>
+        </div>
+
         <!-- Precio -->
         <div class="col-md-6">
           <label class="form-label">Precio del cuadrante</label>
@@ -27,16 +36,28 @@
             <input class="form-control" name="precio" placeholder="Ej: 5000" type="number" min="0" step="0.01" required>
           </div>
         </div>
+
+        <!-- Estado -->
+        <div class="col-md-6">
+          <label class="form-label">Estado</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-toggle-on"></i></span>
+            <select class="form-select" name="estado" required>
+              <option value="Activo" selected>Activo</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Coordenadas -->
       <div class="mb-3 position-relative">
-        <label class="form-label">Coordenadas</label>
+        <label class="form-label">Coordenadas (formato [[lat,lon],[lat,lon],...])</label>
         <div class="input-group">
           <span class="input-group-text"><i class="fa-solid fa-map-pin"></i></span>
-          <textarea class="form-control" id="coordsDisplay" rows="3" name="coordenadas" placeholder="Ej: [[lat,lng],[lat,lng],...]"></textarea>
+          <textarea class="form-control" id="coordsDisplay" rows="3" name="coords_json" required placeholder="Ej: [[10.97,-74.79],[10.98,-74.78],[10.96,-74.78]]"></textarea>
         </div>
-        <small class="text-muted">Puedes editar manualmente o dibujar en el mapa</small>
+        <small class="text-muted">Puedes editar manualmente o hacer click en el mapa para ir agregando puntos.</small>
       </div>
 
       <!-- Barrios (solo lectura) -->
@@ -44,8 +65,10 @@
         <label class="form-label">Barrios</label>
         <div class="input-group">
           <span class="input-group-text"><i class="fa-solid fa-city"></i></span>
-          <textarea class="form-control" id="barriosDisplay" rows="2" readonly placeholder="Los barrios se llenarán automáticamente"></textarea>
+          <textarea class="form-control" id="barriosDisplay" rows="2" readonly placeholder="Ej: Rebolo, 3 postes..."></textarea>
         </div>
+        <small class="text-muted">Los barrios se llenarán automáticamente al definir el cuadrante en el mapa.</small>
+        <input type="hidden" name="barrios" id="barrios">
       </div>
 
       <!-- Mapa -->
@@ -73,6 +96,7 @@
   let poly = null;
   const coordsDisplay = document.getElementById("coordsDisplay");
   const barriosDisplay = document.getElementById("barriosDisplay");
+  const barriosHidden  = document.getElementById("barrios");
 
   let barriosGeoJSON = null;
   fetch("/geojson/Barrios_de_Barranquilla_según_POT_20250905.geojson")
@@ -105,6 +129,11 @@
     return barriosDentro.join(", ");
   }
 
+    function setBarrios(val){
+    barriosDisplay.value = val;
+    barriosHidden.value  = val; 
+  }
+
   coordsDisplay.addEventListener("input", function(){
     try {
       const points = JSON.parse(coordsDisplay.value);
@@ -112,7 +141,8 @@
         if(poly) map.removeLayer(poly);
         poly = L.polygon(points, { color: "#FF6B00", fillOpacity: 0.2 }).addTo(map);
         map.fitBounds(poly.getBounds());
-        barriosDisplay.value = obtenerBarrios(points);
+        setBarrios(obtenerBarrios(points));
+        
       }
     } catch (e) { console.warn("Formato inválido de coordenadas"); }
   });
@@ -127,7 +157,7 @@
     if(poly) map.removeLayer(poly);
     poly = L.polygon(points, { color: "#FF6B00", fillOpacity: 0.2 }).addTo(map);
     coordsDisplay.value = JSON.stringify(points);
-    barriosDisplay.value = obtenerBarrios(points);
+    setBarrios(obtenerBarrios(points));
   });
 
   document.getElementById("resetMap").addEventListener("click", ()=> {

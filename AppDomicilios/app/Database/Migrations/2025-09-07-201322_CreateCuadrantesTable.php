@@ -34,7 +34,7 @@ class CreateCuadrantesTable extends Migration
             ],
             'coords_json' => [
                 'type'       => 'longtext',
-                'coment'     => 'Almacena las coordenadas en formato JSON',
+                'comment'     => 'Almacena las coordenadas en formato JSON',
             ],
             'estado' => [
                 'type'       => 'ENUM',

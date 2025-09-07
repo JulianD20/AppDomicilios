@@ -25,6 +25,20 @@ class CuadranteController extends BaseController
     // Guardar en la BD
     public function store()
     {
+        $coords = $this->request->getPost('coords_json');
+
+        if ($coords === null || trim($coords) === '') {
+            return redirect()->back()->withInput()
+                ->with('error', 'Debes definir el polígono (coords_json no puede estar vacío).');
+        }
+
+        // valida que sea JSON y que sea un array de puntos
+        $decoded = json_decode($coords, true);
+        if (!is_array($decoded) || count($decoded) < 3) {
+            return redirect()->back()->withInput()
+                ->with('error', 'coords_json debe ser JSON válido con al menos 3 puntos.');
+        }
+
         $model = new CuadranteModel();
 
         $data = [
@@ -32,12 +46,11 @@ class CuadranteController extends BaseController
             'localidad'     => $this->request->getPost('localidad'),
             'barrios'       => $this->request->getPost('barrios'),
             'precio'        => $this->request->getPost('precio'),
-            'coords_json'   => $this->request->getPost('coords_json'),
+            'coords_json'   => $coords,
             'estado'        => $this->request->getPost('estado'),
         ];
 
         $model->save($data);
-
         return redirect()->to('/cuadrantes')->with('success', 'Cuadrante creado correctamente.');
     }
 
