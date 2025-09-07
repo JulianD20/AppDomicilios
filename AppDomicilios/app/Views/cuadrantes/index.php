@@ -3,41 +3,89 @@
 
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3><i class="fa-solid fa-draw-polygon me-2 text-muted"></i>Cuadrantes</h3>
-    <a href="/cuadrantes/create" class="btn btn-brand"><i class="fa-solid fa-plus me-1"></i>Crear Cuadrante</a>
+    <h3><i class="fa-solid fa-draw-polygon me-2 text-muted"></i> Cuadrantes</h3>
+    <a href="/cuadrantes/create" class="btn btn-brand"> ➕ Crear Cuadrante
+    </a>
   </div>
 
   <!-- Lista de cuadrantes -->
   <div class="row g-4">
-    <?php if(empty($cuadrantes)): ?>
+    <?php if (empty($cuadrantes)): ?>
       <div class="card-glass p-4 muted text-center w-100">No hay cuadrantes.</div>
-    <?php else: foreach($cuadrantes as $c): ?>
+    <?php else: foreach ($cuadrantes as $c): ?>
       <div class="col-12 col-md-6 col-lg-4 fade-in-up">
-        <div class="card-glass p-3 list-item d-flex flex-column justify-content-between h-100"
-             style="transition: transform .2s, box-shadow .2s; border-radius:12px;">
-          
-          <div class="d-flex align-items-center mb-2">
+        <div class="card-glass p-3 h-100 d-flex flex-column list-item" style="border-radius:12px;">
+
+          <!-- Encabezado -->
+          <div class="d-flex align-items-center mb-3">
             <i class="fa-solid fa-map-location-dot fa-2x text-primary me-3"></i>
             <div>
               <h5 class="mb-0"><?= esc($c['nombre']) ?></h5>
-              <small class="muted"><?= esc($c['descripcion']) ?></small>
+              <small class="text-muted">
+                <?= esc($c['localidad'] ?: 'Sin localidad') ?>
+              </small>
             </div>
           </div>
 
-          <div class="d-flex justify-content-between align-items-center mt-auto">
-            <div class="text-muted small">
-              <i class="fa-solid fa-dollar-sign me-1"></i><?= isset($c['precio']) ? number_format($c['precio'], 0) : 'N/A' ?>
+          <!-- Datos -->
+          <div class="small mb-3">
+            <div class="d-flex align-items-center mb-1">
+              <i class="fa-solid fa-dollar-sign me-2"></i>
+              <span class="fw-semibold">
+                <?= number_format((float)($c['precio'] ?? 0), 0, ',', '.') ?>
+              </span>
+              <span class="ms-3 badge <?= ($c['estado'] ?? 'Activo') === 'Activo' ? 'bg-success' : 'bg-secondary' ?>">
+                <?= esc($c['estado'] ?? 'Activo') ?>
+              </span>
             </div>
+          </div>
+
+          <!-- Barrios -->
+          <?php
+            // Convierte "a, b, c" a array limpiando espacios y vacíos
+            $barriosArr = array_filter(array_map('trim', explode(',', $c['barrios'] ?? '')));
+          ?>
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fa-solid fa-city me-2 text-muted"></i>
+              <span class="text-muted">Barrios</span>
+            </div>
+
+            <?php if ($barriosArr): ?>
+              <div class="barrios-wrap">
+                <?php foreach ($barriosArr as $b): ?>
+                  <span class="badge bg-light text-dark me-1 mb-1 border" title="<?= esc($b, 'attr') ?>">
+                    <?= esc($b) ?>
+                  </span>
+                <?php endforeach; ?>
+              </div>
+            <?php else: ?>
+              <div class="muted">Sin barrios</div>
+            <?php endif; ?>
+          </div>
+
+          <!-- Acciones -->
+          <div class="mt-auto d-flex justify-content-between align-items-center">
             <div class="d-flex gap-2">
-              <a href="#" class="btn btn-sm btn-outline-secondary" title="Ver en mapa">
-                <i class="fa-solid fa-eye"></i>
+              <a href="#"
+                  class="btn btn-sm btn-outline-secondary btn-ver-mapa"
+                  title="Ver en mapa"
+                  data-nombre="<?= esc($c['nombre'], 'attr') ?>"
+                  data-coords='<?= esc($c['coords_json'], 'attr') ?>'>
+                  <i class="fa-solid fa-eye"></i>
               </a>
-              <a href="/cuadrantes/edit/<?= $c['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
-                <i class="fa-solid fa-pen-to-square"></i>
+              <a href="/cuadrantes/edit/<?= (int)$c['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                  <i class="fa-solid fa-pen-to-square"></i>
               </a>
-              <a href="/cuadrantes/delete/<?= $c['id'] ?>" class="btn btn-sm btn-outline-danger" title="Eliminar">
+              <!-- Botón Eliminar -->
+              <form action="/cuadrantes/delete/<?= $c['id'] ?>" method="post" class="d-inline">
+                <?= csrf_field() ?>
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                data-id="<?= $c['id'] ?>" data-nombre="<?= esc($c['nombre']) ?>">
                 <i class="fa-solid fa-trash"></i>
-              </a>
+                </button>
+              </form>
             </div>
           </div>
 
@@ -47,21 +95,117 @@
   </div>
 </div>
 
-<?php $scripts = '
+<!-- Modal Mapa -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-map me-2"></i><span id="mapTitle">Mapa</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="leafletMap" style="height: 480px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content card-glass">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Confirmar Eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro que deseas eliminar el cuadrante <strong id="deleteName"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form id="deleteForm" method="post">
+          <?= csrf_field() ?>
+          <input type="hidden" name="_method" value="DELETE">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash me-1"></i>Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php
+$scripts = '
+<style>
+  .barrios-wrap { display:flex; flex-wrap:wrap; gap:.25rem; max-height:120px; overflow:auto; padding-right:4px; }
+  .list-item { transition: transform .2s, box-shadow .2s; }
+  .list-item:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
 <script>
-  // Animación hover para las tarjetas
-  document.querySelectorAll(".list-item").forEach(card => {
-    card.addEventListener("mouseenter", ()=> {
-      card.style.transform = "translateY(-5px)";
-      card.style.boxShadow = "0 15px 35px rgba(0,0,0,0.15)";
-    });
-    card.addEventListener("mouseleave", ()=> {
-      card.style.transform = "none";
-      card.style.boxShadow = "0 8px 20px rgba(15,23,36,0.08)";
+  // Modal & mapa
+  let mapInstance = null;
+  let polygonLayer = null;
+
+  function ensureMap() {
+    if (!mapInstance) {
+      mapInstance = L.map("leafletMap");
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(mapInstance);
+    }
+  }
+
+  document.querySelectorAll(".btn-ver-mapa").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const nombre = btn.dataset.nombre || "Cuadrante";
+      const coordsStr = btn.dataset.coords || "[]";
+      let puntos = [];
+      try { puntos = JSON.parse(coordsStr); } catch (err) {}
+
+      ensureMap();
+      if (polygonLayer) polygonLayer.remove();
+
+      if (!Array.isArray(puntos) || puntos.length < 3) {
+        alert("El polígono no tiene puntos suficientes.");
+        return;
+      }
+
+      polygonLayer = L.polygon(puntos, { weight: 2, opacity: 0.9, fillOpacity: 0.2 });
+      polygonLayer.addTo(mapInstance);
+      mapInstance.fitBounds(polygonLayer.getBounds(), { padding: [20, 20] });
+
+      document.getElementById("mapTitle").textContent = nombre;
+
+      const modal = new bootstrap.Modal(document.getElementById("mapModal"));
+      modal.show();
+
+      setTimeout(() => { mapInstance.invalidateSize(); }, 200);
     });
   });
 </script>
-'; ?>
+';
+?>
 
 <?php $content = ob_get_clean(); echo view('layouts/app', compact('content','title','scripts')); ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const deleteModal = document.getElementById('deleteModal');
+  const deleteForm = document.getElementById('deleteForm');
+  const deleteName = document.getElementById('deleteName');
+
+  deleteModal.addEventListener('show.bs.modal', event => {
+    const button = event.relatedTarget;
+    const id = button.getAttribute('data-id');
+    const nombre = button.getAttribute('data-nombre');
+
+    deleteForm.action = `/cuadrantes/delete/${id}`;
+    deleteName.textContent = nombre;
+  });
+});
+</script>

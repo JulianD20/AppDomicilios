@@ -58,7 +58,7 @@ class CuadranteController extends BaseController
     public function edit($id)
     {
         $model = new CuadranteModel();
-        $data['Cuadrante'] = $model->find($id);
+        $data['cuadrante'] = $model->find($id);
 
         return view('cuadrantes/edit', $data);
     }
