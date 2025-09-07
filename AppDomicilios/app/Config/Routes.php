@@ -21,6 +21,9 @@ $routes->post('/cuadrantes/store', 'CuadranteController::store');
 $routes->get('/domiciliarios', 'DomiciliarioController::index');
 $routes->get('/domiciliarios/create', 'DomiciliarioController::create');
 $routes->post('/domiciliarios/store', 'DomiciliarioController::store');
+$routes->get('/domiciliarios/edit/(:num)', 'DomiciliarioController::edit/$1');
+$routes->put('/domiciliarios/update/(:num)', 'DomiciliarioController::update/$1');
+$routes->delete('/domiciliarios/delete/(:num)', 'DomiciliarioController::delete/$1');
 
 // --------------------------------------------------------------------
 // Rutas para Pedidos (asignar pedido + factura)
