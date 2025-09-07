@@ -7,6 +7,8 @@
     </div>
 
     <form method="post" action="/domiciliarios/store" class="mt-3">
+      <?= csrf_field() ?> <!-- Seguridad contra CSRF -->
+
       <div class="row g-3 mb-3">
         <!-- Nombre -->
         <div class="col-md-6">
@@ -70,4 +72,5 @@
   </div>
 </div>
 <?php $content = ob_get_clean(); echo view('layouts/app', compact('content','title')); ?>
+
 

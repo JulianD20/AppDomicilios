@@ -6,47 +6,73 @@ use App\Models\DomiciliarioModel;
 
 class DomiciliarioController extends BaseController
 {
+    // Listar todos los domiciliarios
     public function index()
     {
-        // Intentamos cargar datos reales desde el modelo; si no hay BD, usamos ejemplo.
-        // $data = [];
-        // try {
-        //     $model = new DomiciliarioModel();
-        //     $items = $model->findAll();
-        //     if (empty($items)) {
-        //         // fallback si tabla vacía
-        //         $items = [
-        //             ['id'=>1,'nombre'=>'Juan Pérez','telefono'=>'3001112222','cedula'=>'12345678']
-        //         ];
-        //     }
-        // } catch(\Throwable $e) {
-        //     // fallback si no existe la BD / tabla
-        //     $items = [
-        //         ['id'=>1,'nombre'=>'Juan Pérez','telefono'=>'3001112222','cedula'=>'12345678']
-        //     ];
-        // }
-        return view('domiciliarios/index'/*,['domiciliarios' => $items]*/);
+        $model = new DomiciliarioModel();
+        $data['domiciliarios'] = $model->paginate(10); // registros por página
+        $data['pager'] = $model->pager; // pasamos el paginador
+
+        return view('domiciliarios/index', $data);
     }
 
+    // Mostrar formulario de creación
     public function create()
     {
         return view('domiciliarios/create');
     }
 
-    // public function store()
-    // {
-    //     // Guardar si existe modelo; si no, redirigir con flash message.
-    //     try {
-    //         $model = new DomiciliarioModel();
-    //         $model->insert([
-    //             'nombre' => $this->request->getPost('nombre'),
-    //             'telefono' => $this->request->getPost('telefono'),
-    //             'cedula' => $this->request->getPost('cedula'),
-    //         ]);
-    //         session()->setFlashdata('msg', 'Domiciliario creado');
-    //     } catch(\Throwable $e) {
-    //         session()->setFlashdata('msg', 'No se pudo crear (sin BD): ' . $e->getMessage());
-    //     }
-    //     return redirect()->to('/domiciliarios');
-    // }
+    // Guardar en la BD
+    public function store()
+    {
+        $model = new DomiciliarioModel();
+
+        $data = [
+            'nombre'        => $this->request->getPost('nombre'),
+            'telefono'      => $this->request->getPost('telefono'),
+            'cedula'        => $this->request->getPost('cedula'),
+            'estado'        => $this->request->getPost('estado'),
+            'fecha_ingreso' => $this->request->getPost('fecha_ingreso'),
+        ];
+
+        $model->save($data);
+
+        return redirect()->to('/domiciliarios')->with('success', 'Domiciliario creado correctamente.');
+    }
+
+    //Editar
+    public function edit($id)
+    {
+        $model = new DomiciliarioModel();
+        $data['domiciliario'] = $model->find($id);
+
+        return view('domiciliarios/edit', $data);
+    }
+
+    //Actualizar
+    public function update($id)
+    {
+        $model = new DomiciliarioModel();
+
+        $data = [
+            'nombre'        => $this->request->getPost('nombre'),
+            'telefono'      => $this->request->getPost('telefono'),
+            'cedula'        => $this->request->getPost('cedula'),
+            'estado'        => $this->request->getPost('estado'),
+            'fecha_ingreso' => $this->request->getPost('fecha_ingreso'),
+        ];
+
+        $model->update($id, $data);
+
+        return redirect()->to('/domiciliarios')->with('success', 'Domiciliario actualizado correctamente.');
+    }
+
+    //Eliminar
+    public function delete($id)
+    {
+        $model = new DomiciliarioModel();
+        $model->delete($id);
+
+        return redirect()->to('/domiciliarios')->with('success', 'Domiciliario eliminado correctamente.');
+    }
 }
