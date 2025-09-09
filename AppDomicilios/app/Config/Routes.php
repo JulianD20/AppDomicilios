@@ -17,6 +17,7 @@ $routes->post('/cuadrantes/store', 'CuadranteController::store');
 $routes->get('/cuadrantes/edit/(:num)', 'CuadranteController::edit/$1');
 $routes->put('/cuadrantes/update/(:num)', 'CuadranteController::update/$1');
 $routes->delete('/cuadrantes/delete/(:num)', 'CuadranteController::delete/$1');
+$routes->get('/domiciliarios/show/(:num)', 'DomiciliarioController::show/$1');
 
 // --------------------------------------------------------------------
 // Rutas para Domiciliarios
