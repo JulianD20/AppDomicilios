@@ -15,8 +15,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '1032456789',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-01-10',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Luis Gómez',
@@ -24,8 +23,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '1029384756',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-02-05',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'María Ríos',
@@ -33,8 +31,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '9876543210',
                 'estado'        => 'Inactivo',
                 'fecha_ingreso' => '2025-03-15',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Carlos Díaz',
@@ -42,8 +39,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '1122334455',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-04-20',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Julián Mora',
@@ -51,8 +47,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '5566778899',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-05-18',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Paola Herrera',
@@ -60,8 +55,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '9988776655',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-06-25',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Andrés Martínez',
@@ -69,8 +63,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '8877665544',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-07-30',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Sofía Torres',
@@ -78,8 +71,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '7766554433',
                 'estado'        => 'Inactivo',
                 'fecha_ingreso' => '2025-08-12',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
             [
                 'nombre'        => 'Felipe Ramírez',
@@ -88,7 +80,6 @@ class DomiciliariosSeeder extends Seeder
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-08-22',
                 'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
             ],
             [
                 'nombre'        => 'Laura Castillo',
@@ -96,8 +87,7 @@ class DomiciliariosSeeder extends Seeder
                 'cedula'        => '5544332211',
                 'estado'        => 'Activo',
                 'fecha_ingreso' => '2025-09-01',
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'created_at'    => date('Y-m-d H:i:s')
             ],
         ];
 

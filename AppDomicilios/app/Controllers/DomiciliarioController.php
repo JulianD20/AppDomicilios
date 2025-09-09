@@ -67,6 +67,20 @@ class DomiciliarioController extends BaseController
         return redirect()->to('/domiciliarios')->with('success', 'Domiciliario actualizado correctamente.');
     }
 
+    // Mostrar detalle
+    public function show($id)
+    {
+        $model = new DomiciliarioModel();
+        $data['domiciliario'] = $model->find($id);
+
+        if (!$data['domiciliario']) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Domiciliario no encontrado");
+        }
+
+        return view('domiciliarios/show', $data);
+    }
+
+
     //Eliminar
     public function delete($id)
     {
