@@ -67,6 +67,8 @@
           <!-- Acciones -->
           <div class="mt-auto d-flex justify-content-between align-items-center">
             <div class="d-flex gap-2">
+              
+              <!-- Boton de ver  -->
               <a href="#"
                   class="btn btn-sm btn-outline-secondary btn-ver-mapa"
                   title="Ver en mapa"
@@ -74,9 +76,12 @@
                   data-coords='<?= esc($c['coords_json'], 'attr') ?>'>
                   <i class="fa-solid fa-eye"></i>
               </a>
+
+              <!-- boton de editar -->
               <a href="/cuadrantes/edit/<?= (int)$c['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                   <i class="fa-solid fa-pen-to-square"></i>
               </a>
+
               <!-- Botón Eliminar -->
               <form action="/cuadrantes/delete/<?= $c['id'] ?>" method="post" class="d-inline">
                 <?= csrf_field() ?>
