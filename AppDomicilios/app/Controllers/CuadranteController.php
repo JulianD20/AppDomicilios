@@ -12,7 +12,7 @@ class CuadranteController extends BaseController
 
         $model = new CuadranteModel();
         $data = [
-            'cuadrantes' =>$model->findAll() 
+             'cuadrantes' => $model->orderBy('id', 'DESC')->findAll()
         ];
 
         return view('cuadrantes/index', $data);
