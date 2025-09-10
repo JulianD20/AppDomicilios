@@ -6,12 +6,14 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-$routes->get('/', 'CuadranteController::index');
+$routes->get('/', 'AuthController::login');
 
 // --------------------------------------------------------------------
 // Rutas para el Auth
 // --------------------------------------------------------------------
 $routes->get('/auth/login', 'AuthController::login');
+$routes->post('/auth/register', 'AuthController::register');
+$routes->post('/auth/login', 'AuthController::doLogin');  
 
 // --------------------------------------------------------------------
 // Rutas para Cuadrantes
