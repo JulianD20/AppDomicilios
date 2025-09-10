@@ -13,7 +13,8 @@ $routes->get('/', 'AuthController::login');
 // --------------------------------------------------------------------
 $routes->get('/auth/login', 'AuthController::login');
 $routes->post('/auth/register', 'AuthController::register');
-$routes->post('/auth/login', 'AuthController::doLogin');  
+$routes->post('/auth/login', 'AuthController::doLogin');
+$routes->get('/auth/logout', 'AuthController::logout');  
 
 // --------------------------------------------------------------------
 // Rutas para Cuadrantes

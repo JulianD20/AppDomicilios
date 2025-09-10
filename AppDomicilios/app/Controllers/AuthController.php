@@ -32,7 +32,7 @@ class AuthController extends BaseController
             return redirect()->back()->with('error', 'Error al crear usuario.')->withInput();
         }
 
-        return redirect()->to('/login')->with('success', 'Cuenta creada correctamente. Ahora puedes iniciar sesión.');
+        return redirect()->to('/auth/login')->with('success', 'Cuenta creada correctamente. Ahora puedes iniciar sesión.');
     }
 
     // Procesar login
@@ -63,7 +63,7 @@ class AuthController extends BaseController
     public function logout()
     {
         session()->destroy();
-        return redirect()->to('/login');
+        return redirect()->to('/auth/login');
     }
 }
 

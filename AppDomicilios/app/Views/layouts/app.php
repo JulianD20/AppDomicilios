@@ -119,6 +119,26 @@
       border-radius: 10px;
       border: 1px solid rgba(0,0,0,0.06);
     }
+    .logout-link {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+    }
+
+    .logout-link a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #ff4d4d;
+      text-decoration: none;
+      padding: 14px 20px;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .logout-link a:hover {
+      background: rgba(255, 77, 77, 0.15);
+    }
   </style>
 </head>
 <body>
@@ -133,7 +153,15 @@
       <li><a href="/cuadrantes"><i class="fa-solid fa-draw-polygon"></i><span>Cuadrantes</span></a></li>
       <li><a href="/pedidos"><i class="fa-solid fa-box"></i><span>Pedidos</span></a></li>
     </ul>
+
+    <div class="logout-link">
+      <a href="<?= base_url('/auth/logout') ?>" class="text-danger">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Cerrar sesión</span>
+      </a>
+    </div>
   </div>
+
 
   <!-- Main content -->
   <main class="view-wrap">
