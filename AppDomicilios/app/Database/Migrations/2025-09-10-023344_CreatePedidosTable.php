@@ -30,6 +30,19 @@ class CreatePedidosTable extends Migration
                 'constraint' => '10,2',
                 'default'    => 0.00,
             ],
+
+            // --- Campos de pago ---
+            'pagado' => [
+                'type'       => 'TINYINT',
+                'constraint' => 1,
+                'null'       => false,
+                'default'    => 0,
+            ],
+            'pagado_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
@@ -47,8 +60,9 @@ class CreatePedidosTable extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addKey('domiciliario_id');
         $this->forge->addKey('cuadrante_id');
+        $this->forge->addKey('pagado');     
 
-        // Claves foráneas (requiere InnoDB)
+
         $this->forge->addForeignKey('domiciliario_id', 'domiciliarios', 'id', 'RESTRICT', 'RESTRICT');
         $this->forge->addForeignKey('cuadrante_id', 'cuadrantes', 'id', 'RESTRICT', 'RESTRICT');
 

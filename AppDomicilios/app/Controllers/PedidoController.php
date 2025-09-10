@@ -8,10 +8,13 @@ use App\Models\CuadranteModel;
 
 class PedidoController extends BaseController
 {
-    public function index()
+public function index()
     {
         $pedidoModel = new PedidoModel();
         $data['pedidos'] = $pedidoModel->getWithRelations();
+
+        $domModel = new DomiciliarioModel();
+        $data['domiciliarios'] = $domModel->where('estado', 'Activo')->orderBy('nombre', 'ASC')->findAll();
 
         return view('pedidos/index', $data);
     }
@@ -141,4 +144,74 @@ class PedidoController extends BaseController
 
         return redirect()->to('/pedidos')->with('success', 'Pedido eliminado correctamente.');
     }
+    
+    //Pagar pedidos del día
+    public function pagarDia()
+    {
+        $domiciliarioId = (int) $this->request->getPost('domiciliario_id');
+        $fecha          = $this->request->getPost('fecha');
+
+        if ($domiciliarioId <= 0 || ! $fecha) {
+            return redirect()->back()->with('error', 'Datos incompletos.');
+        }
+
+        $pedidoModel = new PedidoModel();
+        $pedidoModel->where('domiciliario_id', $domiciliarioId)
+            ->where('DATE(created_at)', $fecha)
+            ->where('pagado', 0)
+            ->set(['pagado' => 1, 'pagado_at' => date('Y-m-d H:i:s')])
+            ->update();
+
+        return redirect()->to("/pedidos/factura-dia?domiciliario_id={$domiciliarioId}&fecha={$fecha}")
+            ->with('success', 'Pedidos marcados como pagados.');
+    }
+    
+
+    // Factura del día para un domiciliario
+        public function facturaDia()
+    {
+        $domiciliarioId = (int) ($this->request->getGet('domiciliario_id') ?? 0);
+        $fecha          = $this->request->getGet('fecha');
+
+        if ($domiciliarioId <= 0 || ! $fecha) {
+            return redirect()->to('/pedidos')
+                ->with('showFacturaDiaModal', true)
+                ->with('fd_error', 'Debes seleccionar domiciliario y fecha.');
+        }
+
+        $domModel = new DomiciliarioModel();
+        $dom = $domModel->find($domiciliarioId);
+        if (! $dom || ($dom['estado'] ?? '') !== 'Activo') {
+            return redirect()->to('/pedidos')
+                ->with('showFacturaDiaModal', true)
+                ->with('fd_error', 'El domiciliario no existe o no está activo.');
+        }
+
+        $pedidoModel = new PedidoModel();
+        $pedidosDia  = $pedidoModel->pedidosDeDia($domiciliarioId, $fecha);
+
+        if (empty($pedidosDia)) {
+            return redirect()->to('/pedidos')
+                ->with('showFacturaDiaModal', true)               
+                ->with('fd_domiciliario_id', $domiciliarioId)      
+                ->with('fd_fecha', $fecha)                         
+                ->with('fd_error', "No se encontraron pedidos para {$dom['nombre']} el {$fecha}."); 
+        }
+
+        $total = 0;
+        foreach ($pedidosDia as $p) {
+            $total += (float) $p['monto'];
+        }
+
+        $data = [
+            'fecha'         => $fecha,
+            'domiciliario'  => $dom['nombre'] ?? 'N/D',
+            'domiciliarioId'=> $domiciliarioId,
+            'pedidos'       => $pedidosDia,
+            'total'         => $total,
+        ];
+
+        return view('pedidos/factura_dia', $data);
+}
+
 }
