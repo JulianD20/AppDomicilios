@@ -56,13 +56,30 @@
       white-space: nowrap;
     }
 
+    /* User info */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      padding: 14px 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .user-info i {
+      font-size: 1.5rem;
+      min-width: 28px;
+      text-align: center;
+      color: var(--brand);
+    }
+
     .sidebar ul {
       list-style: none;
       padding: 0;
       margin: 20px 0 0 0;
     }
     .sidebar li {
-      margin-bottom: 12px; /* más separación */
+      margin-bottom: 12px;
     }
 
     .sidebar a {
@@ -119,6 +136,28 @@
       border-radius: 10px;
       border: 1px solid rgba(0,0,0,0.06);
     }
+
+    /* Logout link at bottom */
+    .logout-link {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+    }
+
+    .logout-link a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #ff4d4d;
+      text-decoration: none;
+      padding: 14px 20px;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .logout-link a:hover {
+      background: rgba(255, 77, 77, 0.15);
+    }
   </style>
 </head>
 <body>
@@ -128,11 +167,26 @@
     <div class="brand">
       <i class="fa-solid fa-motorcycle"></i> <span>AppDomicilios</span>
     </div>
+
+    <!-- Info usuario logueado -->
+    <div class="user-info">
+      <i class="fa-solid fa-user-circle"></i>
+      <span><?= session('name') ?></span>
+    </div>
+
     <ul>
       <li><a href="/domiciliarios"><i class="fa-solid fa-user"></i><span>Domiciliarios</span></a></li>
       <li><a href="/cuadrantes"><i class="fa-solid fa-draw-polygon"></i><span>Cuadrantes</span></a></li>
       <li><a href="/pedidos"><i class="fa-solid fa-box"></i><span>Pedidos</span></a></li>
     </ul>
+
+    <!-- Logout al final -->
+    <div class="logout-link">
+      <a href="<?= base_url('/auth/logout') ?>" class="text-danger">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>Cerrar sesión</span>
+      </a>
+    </div>
   </div>
 
   <!-- Main content -->
@@ -147,4 +201,5 @@
   <?= isset($scripts) ? $scripts : '' ?>
 </body>
 </html>
+
 
