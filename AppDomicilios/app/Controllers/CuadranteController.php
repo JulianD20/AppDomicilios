@@ -9,11 +9,14 @@ class CuadranteController extends BaseController
 // Listar todos los cuadrantes
     public function index()
     {
+
         $model = new CuadranteModel();
-        $data['cuadrantes'] = $model->paginate(10); // registros por página
-        $data['pager'] = $model->pager; // pasamos el paginador
+        $data = [
+            'cuadrantes' =>$model->findAll() 
+        ];
 
         return view('cuadrantes/index', $data);
+
     }
 
     // Mostrar formulario de creación
