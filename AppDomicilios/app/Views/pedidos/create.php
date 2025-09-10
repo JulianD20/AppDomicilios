@@ -12,25 +12,40 @@
 
     <!-- Formulario -->
     <form id="form-pedido" method="post" action="/pedidos/store">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Domiciliario</label>
-          <select name="domiciliario_id" class="form-select" id="domiciliarioSelect" required>
-            <option value="">-- Selecciona --</option>
-          </select>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Cuadrante</label>
-          <select name="cuadrante_id" class="form-select" id="cuadranteSelect" required>
-            <option value="">-- Selecciona --</option>
-          </select>
-        </div>
-      </div>
+      <?= csrf_field() ?> <!-- Seguridad contra CSRF -->
 
-      <div class="mb-3">
-        <label class="form-label">Monto a pagar</label>
-        <input name="monto" class="form-control" type="number" step="0.01" min="0" required>
-      </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Domiciliario</label>
+            <select name="domiciliario_id" class="form-select" id="domiciliarioSelect" required>
+              <option value="">-- Selecciona --</option>
+              <?php foreach ($domiciliarios as $d): ?>
+                <option value="<?= (int)$d['id'] ?>"><?= esc($d['nombre']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Cuadrante</label>
+            <select name="cuadrante_id" class="form-select" id="cuadranteSelect" required>
+              <option value="">-- Selecciona --</option>
+              <?php foreach ($cuadrantes as $c): ?>
+                <option
+                  value="<?= (int)$c['id'] ?>"
+                  data-precio="<?= number_format((float)$c['precio'], 2, '.', '') ?>">
+                  <?= esc($c['nombre']) ?><?= $c['localidad'] ? ' — '.esc($c['localidad']) : '' ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Monto (precio del cuadrante)</label>
+          <div class="form-control-plaintext fw-semibold" id="montoView">$0.00</div>
+          <input type="hidden" name="monto" id="montoHidden" value="0.00"><!-- opcional -->
+        </div>
+
 
       <div class="d-flex gap-2 justify-content-end">
         <button id="previewBtn" type="button" class="btn btn-outline-primary">
@@ -90,25 +105,40 @@
 
 </div>
 
-<?php $scripts = '
+<?php
+$scripts = <<<'HTML'
 <script>
-  document.getElementById("previewBtn").addEventListener("click", ()=>{
-    const domSel = document.getElementById("domiciliarioSelect");
-    const cuaSel = document.getElementById("cuadranteSelect");
-    const monto = document.querySelector("input[name=\'monto\']").value || "0";
+(function(){
+  const sel = document.getElementById('cuadranteSelect');
+  const montoView = document.getElementById('montoView');
+  const montoHidden = document.getElementById('montoHidden');
 
-    const domText = domSel.options[domSel.selectedIndex]?.text || "-";
-    const cuaText = cuaSel.options[cuaSel.selectedIndex]?.text || "-";
+  function updateMonto(){
+    const opt = sel.options[sel.selectedIndex];
+    const precio = opt?.dataset?.precio ?? '0';
+    const val = parseFloat(precio || '0').toFixed(2);
+    montoView.textContent = '$' + val;
+    if (montoHidden) montoHidden.value = val; 
+  }
 
-    document.getElementById("f-domiciliario").innerText = domText;
-    document.getElementById("f-cuadrante").innerText = cuaText;
-    document.getElementById("f-monto").innerText = "$" + parseFloat(monto).toFixed(2);
+  sel.addEventListener('change', updateMonto);
+  updateMonto(); 
 
-    const modal = new bootstrap.Modal(document.getElementById("facturaModal"));
-    modal.show();
+  document.getElementById('previewBtn')?.addEventListener('click', ()=>{
+    const domSel = document.getElementById('domiciliarioSelect');
+    const domText = domSel.options[domSel.selectedIndex]?.text || '-';
+    const cuaText = sel.options[sel.selectedIndex]?.text || '-';
+    document.getElementById('f-domiciliario').innerText = domText;
+    document.getElementById('f-cuadrante').innerText   = cuaText;
+    document.getElementById('f-monto').innerText        = montoView.textContent;
+
+    new bootstrap.Modal(document.getElementById('facturaModal')).show();
   });
+})();
 </script>
-'; ?>
+HTML;
+?>
+
 
 <?php $content = ob_get_clean(); echo view("layouts/app", compact("content","title","scripts")); ?>
 

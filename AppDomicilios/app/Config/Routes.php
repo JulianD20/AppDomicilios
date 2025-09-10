@@ -40,5 +40,9 @@ $routes->delete('/domiciliarios/delete/(:num)', 'DomiciliarioController::delete/
 $routes->get('/pedidos', 'PedidoController::index');
 $routes->get('/pedidos/create', 'PedidoController::create');
 $routes->post('/pedidos/store', 'PedidoController::store');
+$routes->get('/pedidos/edit/(:num)', 'PedidoController::edit/$1');
+$routes->post('/pedidos/update/(:num)', 'PedidoController::update/$1');
+$routes->delete('/pedidos/delete/(:num)', 'PedidoController::delete/$1');
 $routes->get('/pedidos/factura/(:num)', 'PedidoController::factura/$1');
+
 

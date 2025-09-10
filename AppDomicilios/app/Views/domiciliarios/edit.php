@@ -8,7 +8,7 @@
 
     <form method="post" action="/domiciliarios/update/<?= $domiciliario['id'] ?>" class="mt-3">
       <?= csrf_field() ?>
-      <input type="hidden" name="_method" value="PUT">
+
 
       <div class="row g-3 mb-3">
         <!-- Nombre -->
