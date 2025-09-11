@@ -155,20 +155,24 @@ public function index()
             return redirect()->back()->with('error', 'Datos incompletos.');
         }
 
+        $inicioUTC = \CodeIgniter\I18n\Time::parse($fecha.' 00:00:00', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
+        $finUTC    = \CodeIgniter\I18n\Time::parse($fecha.' 23:59:59', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
+
         $pedidoModel = new PedidoModel();
         $pedidoModel->where('domiciliario_id', $domiciliarioId)
-            ->where('DATE(created_at)', $fecha)
+            ->where('created_at >=', $inicioUTC)
+            ->where('created_at <=', $finUTC)
             ->where('pagado', 0)
             ->set(['pagado' => 1, 'pagado_at' => date('Y-m-d H:i:s')])
             ->update();
 
-        return redirect()->to("/pedidos/factura-dia?domiciliario_id={$domiciliarioId}&fecha={$fecha}")
-            ->with('success', 'Pedidos marcados como pagados.');
+        return redirect()->to('/pedidos')->with('success', 'Pedidos del día marcados como pagados.');
     }
     
 
     // Factura del día para un domiciliario
-        public function facturaDia()
+
+    public function facturaDia()
     {
         $domiciliarioId = (int) ($this->request->getGet('domiciliario_id') ?? 0);
         $fecha          = $this->request->getGet('fecha');
@@ -188,30 +192,40 @@ public function index()
         }
 
         $pedidoModel = new PedidoModel();
-        $pedidosDia  = $pedidoModel->pedidosDeDia($domiciliarioId, $fecha);
 
-        if (empty($pedidosDia)) {
+        // Solo pendientes del día
+        $pendientes = $pedidoModel->pedidosDeDia($domiciliarioId, $fecha, 0);
+
+        // Corridas ya hechas HOY (sobre pedidos de ese día)
+        $corridasPrevias = $pedidoModel->corridasEnDia($domiciliarioId, $fecha);
+
+        if (empty($pendientes)) {
+            $msg = $corridasPrevias > 0
+                ? "No hay pedidos pendientes para {$dom['nombre']} el {$fecha} (ya van {$corridasPrevias} corridas de pago hoy)."
+                : "No se encontraron pedidos para {$dom['nombre']} el {$fecha}.";
             return redirect()->to('/pedidos')
-                ->with('showFacturaDiaModal', true)               
-                ->with('fd_domiciliario_id', $domiciliarioId)      
-                ->with('fd_fecha', $fecha)                         
-                ->with('fd_error', "No se encontraron pedidos para {$dom['nombre']} el {$fecha}."); 
+                ->with('showFacturaDiaModal', true)
+                ->with('fd_domiciliario_id', $domiciliarioId)
+                ->with('fd_fecha', $fecha)
+                ->with('fd_error', $msg);
         }
 
-        $total = 0;
-        foreach ($pedidosDia as $p) {
-            $total += (float) $p['monto'];
+        $totalPendientes = 0;
+        foreach ($pendientes as $p) {
+            $totalPendientes += (float) $p['monto'];
         }
 
         $data = [
-            'fecha'         => $fecha,
-            'domiciliario'  => $dom['nombre'] ?? 'N/D',
-            'domiciliarioId'=> $domiciliarioId,
-            'pedidos'       => $pedidosDia,
-            'total'         => $total,
+            'fecha'           => $fecha,
+            'domiciliario'    => $dom['nombre'] ?? 'N/D',
+            'domiciliarioId'  => $domiciliarioId,
+            'pedidos'         => $pendientes,       // solo pendientes
+            'total'           => $totalPendientes,  // total pendientes
+            'corridaNumero'   => $corridasPrevias + 1, // ← esta sería la N° corrida si se paga ahora
         ];
 
         return view('pedidos/factura_dia', $data);
-}
+    }
+
 
 }
