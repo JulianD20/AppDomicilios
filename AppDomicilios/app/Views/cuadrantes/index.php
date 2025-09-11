@@ -4,8 +4,16 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3><i class="fa-solid fa-draw-polygon me-2 text-muted"></i> Cuadrantes</h3>
-    <a href="/cuadrantes/create" class="btn btn-brand"> ➕ Crear Cuadrante
-    </a>
+    <div class="d-flex gap-2">
+      <!-- Botón para ver mapa general -->
+      <a href="/cuadrantes/mapa" class="btn btn-brand">
+        <i class="fa-solid fa-map-location-dot me-1"></i> Ver Mapa
+      </a>
+      <!-- Botón para crear cuadrante -->
+      <a href="/cuadrantes/create" class="btn btn-outline-brand">
+        <i class="fa-solid fa-plus me-1"></i> Crear Cuadrante
+      </a>
+    </div>
   </div>
 
   <!-- Lista de cuadrantes -->
@@ -42,7 +50,6 @@
 
           <!-- Barrios -->
           <?php
-            // Convierte "a, b, c" a array limpiando espacios y vacíos
             $barriosArr = array_filter(array_map('trim', explode(',', $c['barrios'] ?? '')));
           ?>
           <div class="mb-3">
@@ -144,6 +151,29 @@ $scripts = '
   .barrios-wrap { display:flex; flex-wrap:wrap; gap:.25rem; max-height:120px; overflow:auto; padding-right:4px; }
   .list-item { transition: transform .2s, box-shadow .2s; }
   .list-item:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+
+  .btn-brand {
+    background: var(--brand);
+    color: #fff;
+    font-weight: 500;
+    border-radius: 6px;
+    border: none;
+  }
+  .btn-brand:hover {
+    background: #e55e00;
+    color: #fff;
+  }
+  .btn-outline-brand {
+    border: 1px solid var(--brand);
+    color: var(--brand);
+    font-weight: 500;
+    border-radius: 6px;
+    background: #fff;
+  }
+  .btn-outline-brand:hover {
+    background: var(--brand);
+    color: #fff;
+  }
 </style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
@@ -214,3 +244,4 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+

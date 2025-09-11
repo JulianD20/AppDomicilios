@@ -93,4 +93,12 @@ class CuadranteController extends BaseController
 
         return redirect()->to('/cuadrantes')->with('success', 'Cuadrante eliminado correctamente.');
     }
+
+    public function mapa()
+    {
+        $model = new \App\Models\CuadranteModel();
+        $cuadrantes = $model->findAll();
+
+        return view('cuadrantes/mapa', compact('cuadrantes'));
+    }
 }
