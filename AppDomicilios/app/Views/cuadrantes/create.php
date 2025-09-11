@@ -6,7 +6,7 @@
       <h4 class="mb-0">Crear Cuadrante</h4>
     </div>
 
-    <form method="post" action="/cuadrantes/store" class="mt-3" id="form-cuadrante">
+    <form method="post" action="/cuadrantes/store" class="mt-3" id="form-cuadrante" data-loading-submit>
       <?= csrf_field() ?> <!-- Seguridad contra CSRF -->
       
       <div class="row g-3 mb-3">
@@ -77,7 +77,7 @@
 
       <!-- Botones -->
       <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-brand"><i class="fa-solid fa-save me-1"></i>Guardar</button>
+        <button class="btn btn-outline-secondary btn-sm" type="submit" data-loading-text="Guardando ⏳"><i class="fa-solid fa-save me-1"></i>Guardar</button>
         <a href="/cuadrantes" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Cancelar</a>
         <button type="button" id="resetMap" class="btn btn-outline-danger ms-auto"><i class="fa-solid fa-trash me-1"></i>Limpiar</button>
       </div>

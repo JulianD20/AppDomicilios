@@ -2,11 +2,11 @@
 <div class="container">
   <div class="card-glass p-4">
     <div class="d-flex align-items-center mb-4">
-      <i class="fa-solid fa-motorcycle fa-lg me-2 text-muted"></i>
-      <h4 class="mb-0">Editar Domiciliario</h4>
+      <i class="fa-solid fa-motorcycle fa-lg" style="color: #FF6B00;"></i>
+      <h4 class="mb-0">&nbsp;&nbsp;Editar Domiciliario</h4>
     </div>
 
-    <form method="post" action="/domiciliarios/update/<?= $domiciliario['id'] ?>" class="mt-3">
+    <form method="post" action="/domiciliarios/update/<?= $domiciliario['id'] ?>" class="mt-3" data-loading-submit>
       <?= csrf_field() ?>
 
 
@@ -16,7 +16,15 @@
           <label class="form-label">Nombre</label>
           <div class="input-group">
             <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-            <input class="form-control" name="nombre" value="<?= esc($domiciliario['nombre']) ?>" required>
+            <input class="form-control" 
+                   name="nombre" 
+                   value="<?= esc($domiciliario['nombre']) ?>"
+                   placeholder="Nombre completo" 
+                   required
+                   minlength="3"
+                   maxlength="60"
+                   pattern="^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$"
+                   title="Solo letras y espacios. Mínimo 3 caracteres.">
           </div>
         </div>
 
@@ -25,7 +33,15 @@
           <label class="form-label">Teléfono</label>
           <div class="input-group">
             <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
-            <input class="form-control" name="telefono" value="<?= esc($domiciliario['telefono']) ?>" required>
+            <input type="number" class="form-control" 
+                   name="telefono" 
+                   value="<?= esc($domiciliario['telefono']) ?>"
+                   placeholder="Ej: 3001234567" 
+                   required
+                   minlength="10"
+                   maxlength="10"
+                   pattern="^[0-9]{10}$"
+                   title="Debe tener exactamente 10 dígitos numéricos.">
           </div>
         </div>
       </div>
@@ -36,7 +52,16 @@
           <label class="form-label">Cédula</label>
           <div class="input-group">
             <span class="input-group-text"><i class="fa-solid fa-id-card"></i></span>
-            <input class="form-control" name="cedula" value="<?= esc($domiciliario['cedula']) ?>" required>
+            <input type="number" 
+                   class="form-control" 
+                   name="cedula" 
+                   value="<?= esc($domiciliario['cedula']) ?>"
+                   placeholder="Número de cédula" 
+                   required
+                   minlength="6"
+                   maxlength="11"
+                   oninput="if(this.value.length > this.maxLength) this.value = this.value.slice(0, this.maxLength);"
+                   title="Solo números. Entre 6 y 12 dígitos.">
           </div>
         </div>
 
@@ -66,7 +91,7 @@
 
       <!-- Botones -->
       <div class="d-flex gap-2 mt-4">
-        <button class="btn btn-brand"><i class="fa-solid fa-save me-1"></i>Actualizar</button>
+        <button class="btn btn-outline-secondary btn-sm" type="submit" data-loading-text="Actualizando ⏳"><i class="fa-solid fa-save me-1"></i>Actualizar</button>
         <a href="/domiciliarios" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i>Cancelar</a>
       </div>
     </form>

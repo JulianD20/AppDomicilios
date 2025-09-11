@@ -36,7 +36,7 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->get('/domiciliarios/create', 'DomiciliarioController::create');
     $routes->post('/domiciliarios/store', 'DomiciliarioController::store');
     $routes->get('/domiciliarios/edit/(:num)', 'DomiciliarioController::edit/$1');
-    $routes->put('/domiciliarios/update/(:num)', 'DomiciliarioController::update/$1');
+    $routes->post('/domiciliarios/update/(:num)', 'DomiciliarioController::update/$1');
     $routes->delete('/domiciliarios/delete/(:num)', 'DomiciliarioController::delete/$1');
     $routes->get('/domiciliarios/show/(:num)', 'DomiciliarioController::show/$1');
 

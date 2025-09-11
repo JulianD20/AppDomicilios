@@ -27,7 +27,8 @@ class CuadranteController extends BaseController
 
     // Guardar en la BD
     public function store()
-    {
+    {   
+        helper('feedback');
         $coords = $this->request->getPost('coords_json');
 
         if ($coords === null || trim($coords) === '') {
@@ -54,6 +55,7 @@ class CuadranteController extends BaseController
         ];
 
         $model->save($data);
+        flash_guardado('El cuadrante se guardó correctamente.', null, 'toast'); 
         return redirect()->to('/cuadrantes')->with('success', 'Cuadrante creado correctamente.');
     }
 
@@ -69,6 +71,7 @@ class CuadranteController extends BaseController
     //Actualizar
     public function update($id)
     {
+        helper('feedback');        
         $model = new CuadranteModel();
 
         $data = [
@@ -81,16 +84,17 @@ class CuadranteController extends BaseController
         ];
 
         $model->update($id, $data);
-
+        flash_editado('Actualizamos la información del cuadrante.', null, 'alert');
         return redirect()->to('/cuadrantes')->with('success', 'Cuadrante actualizado correctamente.');
     }
 
     //Eliminar
     public function delete($id)
     {
+        helper('feedback');
         $model = new CuadranteModel();
         $model->delete($id);
-
+        flash_eliminado('El cuadrante fue eliminado del sistema.', null, 'modal');
         return redirect()->to('/cuadrantes')->with('success', 'Cuadrante eliminado correctamente.');
     }
 

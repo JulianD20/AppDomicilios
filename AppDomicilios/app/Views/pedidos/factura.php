@@ -9,7 +9,7 @@ ob_start(); ?>
           <div class="muted small">Fecha: <?= date('Y-m-d') ?></div>
         </div>
         <div class="text-end">
-          <h5 class="text-muted">AppDomicilios</h5>
+          <h5 class="text-muted"><i class="fa-solid fa-motorcycle fa-lg" style="color: #FF6B00;"></i>&nbsp;&nbsp;AppDomicilios</h5>
         </div>
       </div>
 

@@ -9,7 +9,6 @@
 
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -177,6 +176,17 @@
 </head>
 
 <body>
+  
+  <!-- Banners/Toasts/Modales de feedback -->
+  <?= view('partials/feedback_alert') ?>
+  <?= view('partials/feedback_toast') ?>
+  <?= view('partials/feedback_modal') ?>
+
+  <!-- Contenido -->
+  <?= $this->renderSection('content') ?>
+
+  <!-- Bootstrap 5 JS (bundle con Popper) y nuestro JS -->
+  <script src="<?= base_url('assets/js/ui-bootstrap.js') ?>" defer></script>
 
   <!-- Sidebar -->
   <div class="sidebar">

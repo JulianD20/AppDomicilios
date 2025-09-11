@@ -25,6 +25,7 @@ class DomiciliarioController extends BaseController
     // Guardar en la BD
     public function store()
     {
+        helper('feedback');
         $model = new DomiciliarioModel();
 
         $data = [
@@ -36,7 +37,7 @@ class DomiciliarioController extends BaseController
         ];
 
         $model->save($data);
-
+        flash_guardado('El domiciliario se guardó correctamente.', null, 'toast'); 
         return redirect()->to('/domiciliarios')->with('success', 'Domiciliario creado correctamente.');
     }
 
@@ -52,6 +53,7 @@ class DomiciliarioController extends BaseController
     //Actualizar
     public function update($id)
     {
+        helper('feedback');
         $model = new DomiciliarioModel();
 
         $data = [
@@ -63,7 +65,7 @@ class DomiciliarioController extends BaseController
         ];
 
         $model->update($id, $data);
-
+        flash_editado('Actualizamos la información del domiciliario.', null, 'alert');
         return redirect()->to('/domiciliarios')->with('success', 'Domiciliario actualizado correctamente.');
     }
 
@@ -84,9 +86,10 @@ class DomiciliarioController extends BaseController
     //Eliminar
     public function delete($id)
     {
+        helper('feedback');
         $model = new DomiciliarioModel();
         $model->delete($id);
-
+        flash_eliminado('El domiciliario fue eliminado del sistema.', null, 'modal');
         return redirect()->to('/domiciliarios')->with('success', 'Domiciliario eliminado correctamente.');
     }
 }

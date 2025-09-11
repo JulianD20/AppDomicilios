@@ -33,6 +33,7 @@ public function index()
 
     public function store()
     {
+        helper('feedback');
         $rules = [
             'domiciliario_id' => 'required|is_natural_no_zero|is_not_unique[domiciliarios.id]',
             'cuadrante_id'    => 'required|is_natural_no_zero|is_not_unique[cuadrantes.id]',
@@ -65,7 +66,7 @@ public function index()
             'direccion'       => $this->request->getPost('direccion'),
             'monto'           => $monto,
         ], true); // true = return insert ID
-
+        flash_guardado('El pedido se guardó correctamente.', null, 'toast'); 
         return redirect()->to("/pedidos/factura/{$id}")
             ->with('success', 'Pedido asignado correctamente.');
     }
@@ -90,6 +91,7 @@ public function index()
 
     public function update(int $id)
     {
+        helper('feedback');
         $rules = [
             'domiciliario_id' => 'required|is_natural_no_zero|is_not_unique[domiciliarios.id]',
             'cuadrante_id'    => 'required|is_natural_no_zero|is_not_unique[cuadrantes.id]',
@@ -119,7 +121,7 @@ public function index()
             'cuadrante_id'    => (int) $this->request->getPost('cuadrante_id'),
             'monto'           => $monto,
         ]);
-
+        flash_editado('Actualizamos la información del pedido.', null, 'alert');
         return redirect()->to("/pedidos/factura/{$id}")
             ->with('success', 'Pedido actualizado correctamente.');
     }
@@ -140,9 +142,11 @@ public function index()
     //Eliminar
     public function delete($id)
     {
+        helper('feedback');
         $model = new PedidoModel();
         $model->delete($id);
 
+        flash_eliminado('El pedido fue eliminado del sistema.', null, 'modal');
         return redirect()->to('/pedidos')->with('success', 'Pedido eliminado correctamente.');
     }
     
@@ -166,7 +170,7 @@ public function index()
             ->where('pagado', 0)
             ->set(['pagado' => 1, 'pagado_at' => date('Y-m-d H:i:s')])
             ->update();
-
+        
         return redirect()->to('/pedidos')->with('success', 'Pedidos del día marcados como pagados.');
     }
     

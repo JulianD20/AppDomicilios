@@ -30,7 +30,7 @@ ob_start();
     <?php endif; ?>
 
     <!-- Formulario -->
-    <form id="form-pedido" method="post" action="/pedidos/update/<?= (int)$pedido['id'] ?>">
+    <form id="form-pedido" method="post" action="/pedidos/update/<?= (int)$pedido['id'] ?>" data-loading-submit>
         <?= csrf_field() ?>
 
 
@@ -84,7 +84,7 @@ ob_start();
           <i class="bi bi-eye"></i> Previsualizar
         </button>
         <a href="/pedidos" class="btn btn-outline-secondary">Cancelar</a>
-        <button class="btn btn-brand" type="submit">
+        <button class="btn btn-outline-secondary btn-sm" type="submit" data-loading-text="Actualizando...">
           <i class="bi bi-save"></i> Guardar cambios
         </button>
       </div>

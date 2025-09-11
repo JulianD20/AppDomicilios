@@ -112,11 +112,11 @@ $corridasPrevias = max(0, (int)$corridaNumero - 1);
           <i class="fa-solid fa-print me-1"></i> Imprimir
         </button>
 
-        <form method="post" action="/pedidos/pagar-dia" class="d-inline m-0">
+        <form method="post" action="/pedidos/pagar-dia" class="d-inline m-0" data-loading-submit>
           <?= csrf_field() ?>
           <input type="hidden" name="domiciliario_id" value="<?= (int)$domiciliarioId ?>">
           <input type="hidden" name="fecha" value="<?= esc($fecha) ?>">
-          <button type="submit" class="btn btn-success">
+          <button type="submit" class="btn btn-success btn-sm" data-loading-text="Pagando ⏳">
             <i class="fa-solid fa-cash-register me-1"></i>
             Pagar total de la corrida #<?= (int)$corridaNumero ?>
           </button>

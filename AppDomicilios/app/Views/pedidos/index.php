@@ -62,7 +62,7 @@
               <td><?= date('d/m/Y H:i', strtotime($p['created_at'])) ?></td>
               <td>
                 <a href="/pedidos/factura/<?= $p['id'] ?>" class="btn btn-sm btn-outline-primary">
-                  🧾 Factura
+                  🧾
                 </a>
 
                 <a href="/pedidos/edit/<?= $p['id'] ?>" class="btn btn-sm btn-outline-secondary">
@@ -122,7 +122,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
-      <form method="get" action="/pedidos/factura-dia">
+      <form method="get" action="/pedidos/factura-dia" data-loading-submit>
         <div class="modal-body">
 
           <?php if (session('fd_error')): ?>
@@ -159,8 +159,8 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-          <button type="submit" class="btn btn-brand">Generar</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-brand btn-sm" data-loading-text="Generando ⏳" >Generar</button>
         </div>
       </form>
     </div>

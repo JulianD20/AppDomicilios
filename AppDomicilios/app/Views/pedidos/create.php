@@ -12,7 +12,7 @@ ob_start(); ?>
     </div>
 
     <!-- Formulario -->
-    <form id="form-pedido" method="post" action="/pedidos/store">
+    <form id="form-pedido" method="post" action="/pedidos/store" data-loading-submit>
       <?= csrf_field() ?> <!-- Seguridad contra CSRF -->
 
       <div class="row">
@@ -58,7 +58,7 @@ ob_start(); ?>
         <button id="previewBtn" type="button" class="btn btn-outline-primary">
           <i class="bi bi-eye"></i> Previsualizar
         </button>
-        <button class="btn btn-brand" type="submit">
+        <button class="btn btn-outline-secondary btn-sm" type="submit" data-loading-text="Guardando ⏳">
           <i class="bi bi-check2-circle"></i> Asignar Pedido
         </button>
       </div>
