@@ -4,12 +4,16 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold text">📦 Historial de Pedidos</h4>
 
-    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#facturaDiaModal">
+    <div class="d-flex gap-2">
+    <button class="btn btn-brand fa-plus" data-bs-toggle="modal" data-bs-target="#facturaDiaModal">
       🧾 Factura por día
     </button>
 
     <a href="/pedidos/create" class="btn btn-brand fa-plus"> Nuevo Pedido</a>
+    </div>
   </div>
+
+
 
   <div class="card-glass p-3 shadow-sm">
     <table class="table table-hover table-striped align-middle">
@@ -162,6 +166,22 @@
 </div>
 
 <?php $content = ob_get_clean(); echo view('layouts/app', compact('content','title')); ?>
+
+<?php
+$mustOpenFacturaModal = session('showFacturaDiaModal')
+    || session('fd_error')
+    || session('fd_domiciliario_id')
+    || session('fd_fecha');
+?>
+<?php if ($mustOpenFacturaModal): ?>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const el = document.getElementById('facturaDiaModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(el);
+    modal.show();
+  });
+</script>
+<?php endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {

@@ -203,7 +203,8 @@ public function index()
             $msg = $corridasPrevias > 0
                 ? "No hay pedidos pendientes para {$dom['nombre']} el {$fecha} (ya van {$corridasPrevias} corridas de pago hoy)."
                 : "No se encontraron pedidos para {$dom['nombre']} el {$fecha}.";
-            return redirect()->to('/pedidos')
+            return redirect()->back()
+                ->withInput()
                 ->with('showFacturaDiaModal', true)
                 ->with('fd_domiciliario_id', $domiciliarioId)
                 ->with('fd_fecha', $fecha)
