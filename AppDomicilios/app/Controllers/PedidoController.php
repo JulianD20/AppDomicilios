@@ -56,12 +56,13 @@ public function index()
             return redirect()->back()->withInput()->with('error', 'El cuadrante no existe o no está activo.');
         }
 
-        $monto = (float) ($cua['precio'] ?? 0); 
+        $monto = (float) ($cua['precio'] ?? 0);
 
         $pedidoModel = new PedidoModel();
         $id = $pedidoModel->insert([
             'domiciliario_id' => (int) $this->request->getPost('domiciliario_id'),
             'cuadrante_id'    => (int) $this->request->getPost('cuadrante_id'),
+            'direccion'       => $this->request->getPost('direccion'),
             'monto'           => $monto,
         ], true); // true = return insert ID
 
@@ -226,6 +227,18 @@ public function index()
         ];
 
         return view('pedidos/factura_dia', $data);
+    }
+
+    public function cuadrantesJson()
+    {
+        $cuaModel = new CuadranteModel();
+
+        $cuadrantes = $cuaModel
+            ->select('id, nombre, precio, coords_json') // solo lo necesario
+            ->where('estado', 'Activo')
+            ->findAll();
+
+        return $this->response->setJSON($cuadrantes);
     }
 
 

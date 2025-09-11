@@ -7,7 +7,7 @@ class PedidoModel extends Model
 {
     protected $table            = 'pedidos';
     protected $primaryKey       = 'id';
-    protected $allowedFields = ['domiciliario_id','cuadrante_id','monto','pagado','pagado_at'];
+    protected $allowedFields = ['domiciliario_id','cuadrante_id','monto', 'direccion','pagado','pagado_at'];
     protected $useTimestamps    = true;
 
     protected $useSoftDeletes   = true;
@@ -19,7 +19,8 @@ class PedidoModel extends Model
 
     public function getWithRelations(?int $id = null): array
     {
-        $this->select('pedidos.id, 
+        $this->select('pedidos.id,
+                    pedidos.direccion, 
                     pedidos.monto, 
                     pedidos.created_at,
                     pedidos.pagado,           

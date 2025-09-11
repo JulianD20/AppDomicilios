@@ -1,6 +1,7 @@
 <!-- app/Views/layouts/app.php -->
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -13,11 +14,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <!-- Font Awesome + Bootstrap Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
   <style>
-    :root{
+    :root {
       --brand: #FF6B00;
       --dark: #0F1724;
       --bg: #F8FAFC;
@@ -44,6 +45,7 @@
       overflow: hidden;
       z-index: 1000;
     }
+
     .sidebar:hover {
       width: 230px;
     }
@@ -66,6 +68,7 @@
       font-weight: 500;
       white-space: nowrap;
     }
+
     .user-info i {
       font-size: 1.5rem;
       min-width: 28px;
@@ -73,11 +76,20 @@
       color: var(--brand);
     }
 
+    .user-info span {
+      display: block;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .sidebar ul {
       list-style: none;
       padding: 0;
       margin: 20px 0 0 0;
     }
+
     .sidebar li {
       margin-bottom: 12px;
     }
@@ -92,8 +104,9 @@
       transition: background 0.2s;
       white-space: nowrap;
     }
+
     .sidebar a:hover {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .sidebar i {
@@ -107,6 +120,7 @@
       opacity: 0;
       transition: opacity 0.2s ease;
     }
+
     .sidebar:hover span {
       opacity: 1;
     }
@@ -118,7 +132,8 @@
       padding: 28px;
       transition: margin-left 0.3s ease;
     }
-    .sidebar:hover ~ .view-wrap {
+
+    .sidebar:hover~.view-wrap {
       margin-left: 230px;
     }
 
@@ -134,7 +149,7 @@
     #map {
       height: 360px;
       border-radius: 10px;
-      border: 1px solid rgba(0,0,0,0.06);
+      border: 1px solid rgba(0, 0, 0, 0.06);
     }
 
     /* Logout link at bottom */
@@ -160,6 +175,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Sidebar -->
@@ -200,6 +216,5 @@
 
   <?= isset($scripts) ? $scripts : '' ?>
 </body>
+
 </html>
-
-

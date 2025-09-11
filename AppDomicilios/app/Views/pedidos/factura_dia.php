@@ -13,6 +13,12 @@ $pendientesCount = is_array($pedidos) ? count($pedidos) : 0;
 $corridasPrevias = max(0, (int)$corridaNumero - 1);
 ?>
 <style>
+    :root {
+    --brand: #FF6B00;
+    --dark: #0F1724;
+    --bg: #F8FAFC;
+    --card-shadow: 0 8px 20px rgba(15, 23, 36, 0.08);
+  }
   .invoice-card{border-radius:14px}
   .invoice-header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
   .brand{font-weight:700;letter-spacing:.3px;color:var(--bs-secondary-color)}
@@ -48,7 +54,7 @@ $corridasPrevias = max(0, (int)$corridaNumero - 1);
             Fecha: <strong><?= esc($fecha) ?></strong>
           </div>
         </div>
-        <div class="brand">AppDomicilios</div>
+        <div class="brand"><i class="fa-solid fa-motorcycle" style="color: #FF6B00;"></i>&nbsp;&nbsp;AppDomicilios</div>
       </div>
 
       <div class="mt-3 stats">
@@ -58,7 +64,7 @@ $corridasPrevias = max(0, (int)$corridaNumero - 1);
       </div>
 
       <div class="alert alert-info py-2 px-3 mt-3 mb-3">
-        <i class="fa-regular fa-circle-info me-1"></i>
+        <i class="fa-solid fa-circle-info"></i>
         Esta factura incluye únicamente los pedidos <u>pendientes</u> del día.
       </div>
 

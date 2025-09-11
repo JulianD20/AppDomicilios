@@ -105,7 +105,7 @@ $scripts = '
 
   // Carga de barrios POT
   let barriosGeoJSON = null;
-  fetch("/geojson/Barrios_de_Barranquilla_según_POT_20250905.geojson")
+  fetch("/geojson/BarriosBarranquilla.geojson")
     .then(res => res.json())
     .then(data => barriosGeoJSON = data)
     .catch(err => console.error("No se pudo cargar el GeoJSON:", err));

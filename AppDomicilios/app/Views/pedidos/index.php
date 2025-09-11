@@ -22,6 +22,7 @@
           <th>#</th>
           <th>Domiciliario</th>
           <th>Cuadrante</th>
+          <th>Dirección</th>
           <th>Monto</th>
           <th>Estado</th> 
           <th>Fecha</th>
@@ -35,6 +36,7 @@
               <td class="fw-semibold"><?= $p['id'] ?></td>
               <td><?= esc($p['domiciliario']) ?></td>
               <td><?= esc($p['cuadrante']) ?></td>
+              <td><?= esc($p['direccion']) ?></td>
               <td class="text-success fw-bold">$<?= number_format($p['monto'], 2) ?></td>
               <td>
                 <?php if (!empty($p['pagado'])): ?>

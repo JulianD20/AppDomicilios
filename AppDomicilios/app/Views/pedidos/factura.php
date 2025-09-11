@@ -1,4 +1,5 @@
-<?php $title = 'Factura Pedido'; ob_start(); ?>
+<?php $title = 'Factura Pedido';
+ob_start(); ?>
 <div class="container">
   <div class="invoice mt-4">
     <div class="p-4">
@@ -22,11 +23,15 @@
           <strong>Cuadrante</strong>
           <div class="muted small"><?= esc($pedido['cuadrante'] ?? '-') ?></div>
         </div>
+        <div class="col-6 ">
+          <strong>Dirección</strong>
+          <div class="muted small"><?= esc($pedido['direccion'] ?? '-') ?></div>
+        </div>
       </div>
 
       <div class="mt-4 d-flex justify-content-between align-items-center">
         <div class="muted">Método de pago: A convenir</div>
-        <div class="fs-4"><strong>$<?= number_format($pedido['monto'] ?? 0,2) ?></strong></div>
+        <div class="fs-4"><strong>$<?= number_format($pedido['monto'] ?? 0, 2) ?></strong></div>
       </div>
 
     </div>
@@ -37,4 +42,5 @@
     </div>
   </div>
 </div>
-<?php $content = ob_get_clean(); echo view("layouts/app", compact("content","title")); ?>
+<?php $content = ob_get_clean();
+echo view("layouts/app", compact("content", "title")); ?>

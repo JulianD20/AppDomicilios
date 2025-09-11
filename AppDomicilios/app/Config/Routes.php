@@ -52,4 +52,5 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->get('/pedidos/factura/(:num)', 'PedidoController::factura/$1');
     $routes->get('/pedidos/factura-dia', 'PedidoController::facturaDia');
     $routes->post('/pedidos/pagar-dia', 'PedidoController::pagarDia');
+    $routes->get('/pedidos/cuadrantes-json', 'PedidoController::cuadrantesJson');
 });
