@@ -53,7 +53,7 @@ class AuthController extends BaseController
                 'email'   => $user['email'],
                 'logged_in' => true,
             ]);
-            return redirect()->to('/domiciliarios');
+            return redirect()->to('/cuadrantes/mapa');
         }
 
         return redirect()->back()->with('error', 'Credenciales inválidas.');
