@@ -5,19 +5,19 @@
 /** @var array  $pedidos */
 /** @var float  $total */
 /** @var int    $corridaNumero */
+/** @var string $reglaPago */
+/** @var float  $factorPago */
 
 $title = 'Factura diaria';
 ob_start();
 
 $pendientesCount = is_array($pedidos) ? count($pedidos) : 0;
 $corridasPrevias = max(0, (int)$corridaNumero - 1);
+$factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
 ?>
 <style>
-    :root {
-    --brand: #FF6B00;
-    --dark: #0F1724;
-    --bg: #F8FAFC;
-    --card-shadow: 0 8px 20px rgba(15, 23, 36, 0.08);
+  :root{
+    --brand:#FF6B00;--dark:#0F1724;--bg:#F8FAFC;--card-shadow:0 8px 20px rgba(15,23,36,.08)
   }
   .invoice-card{border-radius:14px}
   .invoice-header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
@@ -54,18 +54,23 @@ $corridasPrevias = max(0, (int)$corridaNumero - 1);
             Fecha: <strong><?= esc($fecha) ?></strong>
           </div>
         </div>
-        <div class="brand"><i class="fa-solid fa-motorcycle" style="color: #FF6B00;"></i>&nbsp;&nbsp;AppDomicilios</div>
+        <div class="brand"><i class="fa-solid fa-motorcycle" style="color:#FF6B00;"></i>&nbsp;&nbsp;AppDomicilios</div>
       </div>
 
       <div class="mt-3 stats">
         <div class="stat">Pendientes hoy: <b><?= (int)$pendientesCount ?></b></div>
         <div class="stat">Corridas previas: <b><?= (int)$corridasPrevias ?></b></div>
-        <div class="stat">Total a pagar: <b>$<?= number_format($total, 2) ?></b></div>
+        <div class="stat">Total a pagar: <b>$<?= number_format((float)$total, 2) ?></b></div>
+        <div class="stat">Regla de pago: <b><?= esc($reglaPago ?? '—') ?></b></div>
+        <div class="stat">Factor aplicado: <b><?= isset($factorPago) ? number_format($factorPct, 0) . '%' : '—' ?></b></div>
       </div>
 
       <div class="alert alert-info py-2 px-3 mt-3 mb-3">
         <i class="fa-solid fa-circle-info"></i>
         Esta factura incluye únicamente los pedidos <u>pendientes</u> del día.
+        <?php if (isset($factorPago) && (float)$factorPago < 1): ?>
+          <br>Se aplicó un pago del <b><?= number_format($factorPct, 0) ?>%</b> por tener 2 o más pedidos en el día.
+        <?php endif; ?>
       </div>
 
       <div class="table-responsive">
@@ -74,26 +79,34 @@ $corridasPrevias = max(0, (int)$corridaNumero - 1);
             <tr>
               <th># Pedido</th>
               <th>Cuadrante</th>
-              <th class="text-end">Monto</th>
+              <th class="text-end">Monto a pagar</th>
               <th>Estado</th>
               <th>Hora</th>
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($pedidos as $p): ?>
+            <?php foreach ($pedidos as $p): 
+              $montoBase = (float)($p['monto'] ?? 0);
+              $montoPago = (float)($p['monto_calculado'] ?? $montoBase);
+            ?>
               <tr>
-                <td><?= (int)$p['id'] ?></td>
+                <td><?= (int)($p['id'] ?? 0) ?></td>
                 <td><?= esc($p['cuadrante'] ?? '-') ?></td>
-                <td class="text-end">$<?= number_format((float)$p['monto'], 2) ?></td>
+                <td class="text-end">
+                  $<?= number_format($montoPago, 2) ?>
+                  <?php if ($montoPago < $montoBase): ?>
+                    <div class="small text-muted">Base: $<?= number_format($montoBase, 2) ?></div>
+                  <?php endif; ?>
+                </td>
                 <td><span class="badge text-bg-warning">Pendiente</span></td>
-                <td><?= date('H:i', strtotime($p['created_at'])) ?></td>
+                <td><?= isset($p['created_at']) ? date('H:i', strtotime($p['created_at'])) : '--:--' ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
           <tfoot>
             <tr>
               <th colspan="2" class="text-end">Total a pagar</th>
-              <th class="text-end fs-5">$<?= number_format($total, 2) ?></th>
+              <th class="text-end fs-5">$<?= number_format((float)$total, 2) ?></th>
               <th colspan="2"></th>
             </tr>
           </tfoot>

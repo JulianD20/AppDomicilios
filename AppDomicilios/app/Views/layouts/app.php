@@ -204,6 +204,7 @@
       <li><a href="/domiciliarios"><i class="fa-solid fa-user"></i><span>Domiciliarios</span></a></li>
       <li><a href="/cuadrantes"><i class="fa-solid fa-draw-polygon"></i><span>Cuadrantes</span></a></li>
       <li><a href="/pedidos"><i class="fa-solid fa-box"></i><span>Pedidos</span></a></li>
+      <li><a href="/factorpago"><i class="fa-solid fa-file-invoice-dollar"></i><span>Factor de pago</span></a></li>
     </ul>
 
     <!-- Logout al final -->

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
@@ -8,7 +9,7 @@ use App\Models\CuadranteModel;
 
 class PedidoController extends BaseController
 {
-public function index()
+    public function index()
     {
         $pedidoModel = new PedidoModel();
         $data['pedidos'] = $pedidoModel->getWithRelations();
@@ -66,12 +67,12 @@ public function index()
             'direccion'       => $this->request->getPost('direccion'),
             'monto'           => $monto,
         ], true); // true = return insert ID
-        flash_guardado('El pedido se guardó correctamente.', null, 'toast'); 
+        flash_guardado('El pedido se guardó correctamente.', null, 'toast');
         return redirect()->to("/pedidos/factura/{$id}")
             ->with('success', 'Pedido asignado correctamente.');
     }
 
-        public function edit(int $id)
+    public function edit(int $id)
     {
         $pedidoModel = new PedidoModel();
         $domModel    = new DomiciliarioModel();
@@ -112,7 +113,7 @@ public function index()
             return redirect()->back()->withInput()->with('error', 'El cuadrante no existe o no está activo.');
         }
 
-        $monto = (float) ($cua['precio'] ?? 0); 
+        $monto = (float) ($cua['precio'] ?? 0);
 
 
         $pedidoModel = new PedidoModel();
@@ -125,55 +126,6 @@ public function index()
         return redirect()->to("/pedidos/factura/{$id}")
             ->with('success', 'Pedido actualizado correctamente.');
     }
-
-
-    public function factura(int $id)
-    {
-        $pedidoModel = new PedidoModel();
-        $pedido = $pedidoModel->getWithRelations($id);
-
-        if (empty($pedido)) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Pedido no encontrado');
-        }
-
-        return view('pedidos/factura', ['pedido' => $pedido]);
-    }
-
-    //Eliminar
-    public function delete($id)
-    {
-        helper('feedback');
-        $model = new PedidoModel();
-        $model->delete($id);
-
-        flash_eliminado('El pedido fue eliminado del sistema.', null, 'modal');
-        return redirect()->to('/pedidos')->with('success', 'Pedido eliminado correctamente.');
-    }
-    
-    //Pagar pedidos del día
-    public function pagarDia()
-    {
-        $domiciliarioId = (int) $this->request->getPost('domiciliario_id');
-        $fecha          = $this->request->getPost('fecha');
-
-        if ($domiciliarioId <= 0 || ! $fecha) {
-            return redirect()->back()->with('error', 'Datos incompletos.');
-        }
-
-        $inicioUTC = \CodeIgniter\I18n\Time::parse($fecha.' 00:00:00', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
-        $finUTC    = \CodeIgniter\I18n\Time::parse($fecha.' 23:59:59', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
-
-        $pedidoModel = new PedidoModel();
-        $pedidoModel->where('domiciliario_id', $domiciliarioId)
-            ->where('created_at >=', $inicioUTC)
-            ->where('created_at <=', $finUTC)
-            ->where('pagado', 0)
-            ->set(['pagado' => 1, 'pagado_at' => date('Y-m-d H:i:s')])
-            ->update();
-        
-        return redirect()->to('/pedidos')->with('success', 'Pedidos del día marcados como pagados.');
-    }
-    
 
     // Factura del día para un domiciliario
 
@@ -216,22 +168,97 @@ public function index()
                 ->with('fd_error', $msg);
         }
 
-        $totalPendientes = 0;
-        foreach ($pendientes as $p) {
-            $totalPendientes += (float) $p['monto'];
+        // === AQUI APLICAMOS LA REGLA DE PAGO ===
+        // Ordenamos para definir cuál es "el primero" del día
+        usort($pendientes, static function ($a, $b) {
+            $ta = strtotime($a['created_at'] ?? '1970-01-01 00:00:00');
+            $tb = strtotime($b['created_at'] ?? '1970-01-01 00:00:00');
+            if ($ta === $tb) {
+                return ((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0));
+            }
+            return $ta <=> $tb; // más antiguo primero
+        });
+
+        $pendientesCalc  = [];
+        $totalPendientes = 0.0;
+
+        foreach ($pendientes as $idx => $p) {
+            $base    = (float)($p['monto'] ?? 0);
+            $aplicar = ($idx === 0) ? $base : ($base / 2); // 1º = 100%, siguientes = 50%
+            $p['monto_calculado'] = $aplicar;
+            $pendientesCalc[]     = $p;
+            $totalPendientes     += $aplicar;
         }
 
+        $conteo    = count($pendientes);
+        $reglaPago = ($conteo > 1)
+            ? 'Primer pedido 100%, siguientes 50%'
+            : 'Pago completo por único pedido';
+
+        // Nota: el factor no es uniforme cuando hay 2+ pedidos, por eso enviamos null.
         $data = [
             'fecha'           => $fecha,
             'domiciliario'    => $dom['nombre'] ?? 'N/D',
             'domiciliarioId'  => $domiciliarioId,
-            'pedidos'         => $pendientes,       // solo pendientes
-            'total'           => $totalPendientes,  // total pendientes
-            'corridaNumero'   => $corridasPrevias + 1, // ← esta sería la N° corrida si se paga ahora
+            'pedidos'         => $pendientesCalc,     // con 'monto_calculado'
+            'total'           => $totalPendientes,    // total según la regla
+            'corridaNumero'   => $corridasPrevias + 1,
+            'reglaPago'       => $reglaPago,
+            'factorPago'      => ($conteo > 1) ? null : 1.0,
         ];
 
         return view('pedidos/factura_dia', $data);
     }
+
+    
+    public function factura(int $id)
+    {
+        $pedidoModel = new PedidoModel();
+        $pedido = $pedidoModel->getWithRelations($id);
+
+        if (empty($pedido)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Pedido no encontrado');
+        }
+
+        return view('pedidos/factura', ['pedido' => $pedido]);
+    }
+
+    //Eliminar
+    public function delete($id)
+    {
+        helper('feedback');
+        $model = new PedidoModel();
+        $model->delete($id);
+
+        flash_eliminado('El pedido fue eliminado del sistema.', null, 'modal');
+        return redirect()->to('/pedidos')->with('success', 'Pedido eliminado correctamente.');
+    }
+
+    //Pagar pedidos del día
+    public function pagarDia()
+    {
+        $domiciliarioId = (int) $this->request->getPost('domiciliario_id');
+        $fecha          = $this->request->getPost('fecha');
+
+        if ($domiciliarioId <= 0 || ! $fecha) {
+            return redirect()->back()->with('error', 'Datos incompletos.');
+        }
+
+        $inicioUTC = \CodeIgniter\I18n\Time::parse($fecha . ' 00:00:00', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
+        $finUTC    = \CodeIgniter\I18n\Time::parse($fecha . ' 23:59:59', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
+
+        $pedidoModel = new PedidoModel();
+        $pedidoModel->where('domiciliario_id', $domiciliarioId)
+            ->where('created_at >=', $inicioUTC)
+            ->where('created_at <=', $finUTC)
+            ->where('pagado', 0)
+            ->set(['pagado' => 1, 'pagado_at' => date('Y-m-d H:i:s')])
+            ->update();
+
+        return redirect()->to('/pedidos')->with('success', 'Pedidos del día marcados como pagados.');
+    }
+
+
 
     public function cuadrantesJson()
     {
@@ -244,6 +271,4 @@ public function index()
 
         return $this->response->setJSON($cuadrantes);
     }
-
-
 }
