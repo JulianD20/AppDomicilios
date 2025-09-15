@@ -85,7 +85,7 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($pedidos as $p): 
+            <?php foreach ($pedidos as $p):
               $montoBase = (float)($p['monto'] ?? 0);
               $montoPago = (float)($p['monto_calculado'] ?? $montoBase);
             ?>
@@ -116,7 +116,7 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
 
     <!-- Barra de acciones fija (no se imprime) -->
     <div class="sticky-actions d-print-none">
-      <a class="btn btn-outline-secondary" href="/pedidos">
+      <a class="btn btn-outline-secondary" href="/factor-pago">
         <i class="fa-solid fa-arrow-left-long me-1"></i> Volver
       </a>
 
@@ -125,7 +125,7 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
           <i class="fa-solid fa-print me-1"></i> Imprimir
         </button>
 
-        <form method="post" action="/pedidos/pagar-dia" class="d-inline m-0" data-loading-submit>
+        <form method="post" action="/factor-pago/pagar-dia" class="d-inline m-0" data-loading-submit>
           <?= csrf_field() ?>
           <input type="hidden" name="domiciliario_id" value="<?= (int)$domiciliarioId ?>">
           <input type="hidden" name="fecha" value="<?= esc($fecha) ?>">
@@ -138,4 +138,5 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
     </div>
   </div>
 </div>
+
 <?php $content = ob_get_clean(); echo view('layouts/app', compact('content','title')); ?>

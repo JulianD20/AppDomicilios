@@ -50,7 +50,14 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->post('/pedidos/update/(:num)', 'PedidoController::update/$1');
     $routes->delete('/pedidos/delete/(:num)', 'PedidoController::delete/$1');
     $routes->get('/pedidos/factura/(:num)', 'PedidoController::factura/$1');
-    $routes->get('/pedidos/factura-dia', 'PedidoController::facturaDia');
-    $routes->post('/pedidos/pagar-dia', 'PedidoController::pagarDia');
     $routes->get('/pedidos/cuadrantes-json', 'PedidoController::cuadrantesJson');
+
+    // ----------------------------------------------------------------
+    // NUEVO MÓDULO: Factor de pago
+    // ----------------------------------------------------------------
+    $routes->group('/factor-pago', static function($routes) {
+        $routes->get('/', 'FactorPagoController::index');           
+        $routes->get('factura-dia', 'FactorPagoController::facturaDia'); 
+        $routes->post('pagar-dia', 'FactorPagoController::pagarDia');    
+    });
 });
