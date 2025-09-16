@@ -16,9 +16,7 @@ $corridasPrevias = max(0, (int)$corridaNumero - 1);
 $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
 ?>
 <style>
-  :root{
-    --brand:#FF6B00;--dark:#0F1724;--bg:#F8FAFC;--card-shadow:0 8px 20px rgba(15,23,36,.08)
-  }
+  :root{ --brand:#FF6B00;--dark:#0F1724;--bg:#F8FAFC;--card-shadow:0 8px 20px rgba(15,23,36,.08) }
   .invoice-card{border-radius:14px}
   .invoice-header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
   .brand{font-weight:700;letter-spacing:.3px;color:var(--bs-secondary-color)}
@@ -60,9 +58,8 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
       <div class="mt-3 stats">
         <div class="stat">Pendientes hoy: <b><?= (int)$pendientesCount ?></b></div>
         <div class="stat">Corridas previas: <b><?= (int)$corridasPrevias ?></b></div>
-        <div class="stat">Total a pagar: <b>$<?= number_format((float)$total, 2) ?></b></div>
+        <div class="stat">Total a pagar: <b><?= cop($total) ?></b></div>
         <div class="stat">Regla de pago: <b><?= esc($reglaPago ?? '—') ?></b></div>
-        <div class="stat">Factor aplicado: <b><?= isset($factorPago) ? number_format($factorPct, 0) . '%' : '—' ?></b></div>
       </div>
 
       <div class="alert alert-info py-2 px-3 mt-3 mb-3">
@@ -79,6 +76,7 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
             <tr>
               <th># Pedido</th>
               <th>Cuadrante</th>
+              <th class="text-end">% aplicado</th> <!-- NUEVO -->
               <th class="text-end">Monto a pagar</th>
               <th>Estado</th>
               <th>Hora</th>
@@ -88,14 +86,16 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
             <?php foreach ($pedidos as $p):
               $montoBase = (float)($p['monto'] ?? 0);
               $montoPago = (float)($p['monto_calculado'] ?? $montoBase);
+              $pct       = (float)($p['porcentaje_aplicado'] ?? (isset($factorPago) ? $factorPct : 100));
             ?>
               <tr>
                 <td><?= (int)($p['id'] ?? 0) ?></td>
                 <td><?= esc($p['cuadrante'] ?? '-') ?></td>
+                <td class="text-end"><?= rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.') ?>%</td> <!-- NUEVO -->
                 <td class="text-end">
-                  $<?= number_format($montoPago, 2) ?>
+                  <?= cop($montoPago) ?>
                   <?php if ($montoPago < $montoBase): ?>
-                    <div class="small text-muted">Base: $<?= number_format($montoBase, 2) ?></div>
+                    <div class="small text-muted">Base: <?= cop($montoBase) ?></div>
                   <?php endif; ?>
                 </td>
                 <td><span class="badge text-bg-warning">Pendiente</span></td>
@@ -105,10 +105,18 @@ $factorPct       = isset($factorPago) ? (float)$factorPago * 100 : 100;
           </tbody>
           <tfoot>
             <tr>
-              <th colspan="2" class="text-end">Total a pagar</th>
-              <th class="text-end fs-5">$<?= number_format((float)$total, 2) ?></th>
+              <!-- Ajuste de colspans por la nueva columna -->
+              <th colspan="3" class="text-end">Total a pagar</th>
+              <th class="text-end fs-5"><?= cop($total) ?></th>
               <th colspan="2"></th>
             </tr>
+            <?php if (!empty($reglaPago)): ?> <!-- NUEVO: solo si hay regla -->
+            <tr>
+              <td colspan="6" class="text-muted small">
+                Regla actual: <strong><?= esc($reglaPago) ?></strong>
+              </td>
+            </tr>
+            <?php endif; ?>
           </tfoot>
         </table>
       </div>

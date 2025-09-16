@@ -31,7 +31,7 @@ ob_start(); ?>
 
       <div class="mt-4 d-flex justify-content-between align-items-center">
         <div class="muted">Método de pago: A convenir</div>
-        <div class="fs-4"><strong>$<?= number_format($pedido['monto'] ?? 0, 2) ?></strong></div>
+        <div class="fs-4"><strong><?= cop($pedido['monto']) ?></strong></div>
       </div>
 
     </div>

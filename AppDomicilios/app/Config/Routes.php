@@ -54,12 +54,13 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->get('pedidos/cuadrantes-json', 'PedidoController::cuadrantesJson');
 
 
-    // ----------------------------------------------------------------
-    // NUEVO MÓDULO: Factor de pago
-    // ----------------------------------------------------------------
-    $routes->group('/factor-pago', static function($routes) {
-        $routes->get('/', 'FactorPagoController::index');           
-        $routes->get('factura-dia', 'FactorPagoController::facturaDia'); 
-        $routes->post('pagar-dia', 'FactorPagoController::pagarDia');    
+// ----------------------------------------------------------------
+// NUEVO MÓDULO: Factor de pago
+// ----------------------------------------------------------------
+    $routes->group('/factor-pago', static function ($routes) {
+    $routes->get('/', 'FactorPagoController::index');
+    $routes->get('factura-dia', 'FactorPagoController::facturaDia');
+    $routes->post('pagar-dia', 'FactorPagoController::pagarDia');
+    $routes->post('config', 'FactorPagoController::updateConfig'); 
     });
 });
