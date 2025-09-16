@@ -115,7 +115,6 @@ class PedidoController extends BaseController
 
         $monto = (float) ($cua['precio'] ?? 0);
 
-
         $pedidoModel = new PedidoModel();
         $pedidoModel->update($id, [
             'domiciliario_id' => (int) $this->request->getPost('domiciliario_id'),
@@ -128,7 +127,6 @@ class PedidoController extends BaseController
     }
 
     // Factura del día para un domiciliario
-
     public function facturaDia()
     {
         $domiciliarioId = (int) ($this->request->getGet('domiciliario_id') ?? 0);
@@ -169,14 +167,13 @@ class PedidoController extends BaseController
         }
 
         // === AQUI APLICAMOS LA REGLA DE PAGO ===
-        // Ordenamos para definir cuál es "el primero" del día
         usort($pendientes, static function ($a, $b) {
             $ta = strtotime($a['created_at'] ?? '1970-01-01 00:00:00');
             $tb = strtotime($b['created_at'] ?? '1970-01-01 00:00:00');
             if ($ta === $tb) {
                 return ((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0));
             }
-            return $ta <=> $tb; // más antiguo primero
+            return $ta <=> $tb;
         });
 
         $pendientesCalc  = [];
@@ -195,13 +192,12 @@ class PedidoController extends BaseController
             ? 'Primer pedido 100%, siguientes 50%'
             : 'Pago completo por único pedido';
 
-        // Nota: el factor no es uniforme cuando hay 2+ pedidos, por eso enviamos null.
         $data = [
             'fecha'           => $fecha,
             'domiciliario'    => $dom['nombre'] ?? 'N/D',
             'domiciliarioId'  => $domiciliarioId,
-            'pedidos'         => $pendientesCalc,     // con 'monto_calculado'
-            'total'           => $totalPendientes,    // total según la regla
+            'pedidos'         => $pendientesCalc,
+            'total'           => $totalPendientes,
             'corridaNumero'   => $corridasPrevias + 1,
             'reglaPago'       => $reglaPago,
             'factorPago'      => ($conteo > 1) ? null : 1.0,
@@ -210,7 +206,6 @@ class PedidoController extends BaseController
         return view('pedidos/factura_dia', $data);
     }
 
-    
     public function factura(int $id)
     {
         $pedidoModel = new PedidoModel();
@@ -223,7 +218,7 @@ class PedidoController extends BaseController
         return view('pedidos/factura', ['pedido' => $pedido]);
     }
 
-    //Eliminar
+    // Eliminar
     public function delete($id)
     {
         helper('feedback');
@@ -234,7 +229,7 @@ class PedidoController extends BaseController
         return redirect()->to('/pedidos')->with('success', 'Pedido eliminado correctamente.');
     }
 
-    //Pagar pedidos del día
+    // Pagar pedidos del día
     public function pagarDia()
     {
         $domiciliarioId = (int) $this->request->getPost('domiciliario_id');
@@ -258,17 +253,159 @@ class PedidoController extends BaseController
         return redirect()->to('/pedidos')->with('success', 'Pedidos del día marcados como pagados.');
     }
 
-
-
+    /**
+     * (Compat) JSON "ligero" desde la DB.
+     * Puedes dejarlo igual; el front nuevo debería consumir /pedidos/cuadrantes-geojson
+     */
     public function cuadrantesJson()
     {
         $cuaModel = new CuadranteModel();
 
         $cuadrantes = $cuaModel
-            ->select('id, nombre, precio, coords_json') // solo lo necesario
+            ->select('id, nombre, precio, coords_json')
             ->where('estado', 'Activo')
             ->findAll();
 
         return $this->response->setJSON($cuadrantes);
+    }
+
+    /**
+     * NUEVO: Unifica DB + GeoJSON externo y entrega un GeoJSON listo para Turf.
+     * - Empareja por (localidad + nombre de barrio) y luego por nombre.
+     * - Fallback a coords_json de la DB (convierte [lat,lon] -> [lon,lat] y cierra el anillo).
+     */
+    public function cuadrantesGeojson()
+    {
+        $cuaModel = new CuadranteModel();
+
+        // Tu tabla: id, nombre, localidad, barrios, precio, coords_json
+        $cuadrantes = $cuaModel
+            ->select('id, nombre, localidad, barrios, precio, coords_json')
+            ->where('estado', 'Activo')
+            ->findAll();
+
+        // Cargar archivo público
+        $path = FCPATH . 'geojson/BarriosBarranquilla.geojson';
+        $features = [];
+        if (is_file($path)) {
+            $geo = json_decode(file_get_contents($path), true);
+            $features = $geo['features'] ?? [];
+        }
+
+        // Índices: por nombre y por (localidad|nombre)
+        $byName    = [];
+        $byNameLoc = [];
+        foreach ($features as $f) {
+            $props = $f['properties'] ?? [];
+            $gNombre    = $props['nombre']    ?? null;
+            $gLocalidad = $props['localidad'] ?? null;
+
+            if ($gNombre) {
+                $sn = $this->slug($gNombre);
+                $byName[$sn] = [
+                    'geometry' => $f['geometry'] ?? null,
+                    'props'    => [
+                        'nombre'     => $props['nombre']    ?? null,
+                        'localidad'  => $props['localidad'] ?? null,
+                        'pieza_urba' => $props['pieza_urba'] ?? null,
+                    ],
+                ];
+                if ($gLocalidad) {
+                    $key = $this->slug($gLocalidad) . '|' . $sn;
+                    $byNameLoc[$key] = $byName[$sn];
+                }
+            }
+        }
+
+        $out = ['type' => 'FeatureCollection', 'features' => []];
+
+        foreach ($cuadrantes as $c) {
+            $geom   = null;
+            $src    = 'db';
+            $gProps = ['localidad' => null, 'pieza_urba' => null, 'nombre' => $c['nombre']];
+
+            // Construir candidatos de nombre de barrio
+            $candidateNames = [];
+            if (!empty($c['barrios'])) {
+                $parts = preg_split('/[;,]/', (string)$c['barrios']);
+                foreach ($parts as $p) {
+                    $p = trim($p);
+                    if ($p !== '') $candidateNames[] = $p;
+                }
+            }
+            // Fallback: usar el nombre del cuadrante
+            if (empty($candidateNames) && !empty($c['nombre'])) {
+                $candidateNames[] = $c['nombre'];
+            }
+
+            // 1) Emparejar por (localidad|nombre)
+            if (!empty($c['localidad']) && $candidateNames) {
+                foreach ($candidateNames as $nm) {
+                    $key = $this->slug($c['localidad']) . '|' . $this->slug($nm);
+                    if (isset($byNameLoc[$key])) {
+                        $geom   = $byNameLoc[$key]['geometry'];
+                        $gProps = array_merge($gProps, $byNameLoc[$key]['props']);
+                        $src    = 'geojson';
+                        break;
+                    }
+                }
+            }
+
+            // 2) Si no, por nombre solo
+            if (!$geom && $candidateNames) {
+                foreach ($candidateNames as $nm) {
+                    $sn = $this->slug($nm);
+                    if (isset($byName[$sn])) {
+                        $geom   = $byName[$sn]['geometry'];
+                        $gProps = array_merge($gProps, $byName[$sn]['props']);
+                        $src    = 'geojson';
+                        break;
+                    }
+                }
+            }
+
+            // 3) Fallback: usar coords_json de la DB (suponiendo [lat,lon] en tu DB)
+            if (!$geom) {
+                $ring = json_decode($c['coords_json'] ?? '[]', true) ?: [];
+                // Convertir [lat,lon] -> [lon,lat]
+                $ring = array_map(static fn($p) => [ (float)$p[1], (float)$p[0] ], $ring);
+
+                // Cerrar anillo si hace falta
+                if ($ring && ($ring[0][0] !== $ring[count($ring)-1][0] || $ring[0][1] !== $ring[count($ring)-1][1])) {
+                    $ring[] = $ring[0];
+                }
+
+                if ($ring) {
+                    $geom = ['type' => 'Polygon', 'coordinates' => [ $ring ]];
+                }
+            }
+
+            if ($geom) {
+                $out['features'][] = [
+                    'type'       => 'Feature',
+                    'geometry'   => $geom, // Puede ser Polygon o MultiPolygon del archivo
+                    'properties' => [
+                        'id'         => (int)$c['id'],         // id interno del cuadrante
+                        'nombre'     => $c['nombre'],
+                        'localidad'  => $c['localidad'],
+                        'barrios'    => $c['barrios'],
+                        'precio'     => (float)$c['precio'],
+                        'source'     => $src,                   // 'geojson' o 'db'
+                    ],
+                ];
+            }
+        }
+
+        return $this->response->setJSON($out);
+    }
+
+    // Normalizador simple para comparar cadenas (quita acentos, espacios múltiples, etc.)
+    protected function slug(?string $s): string
+    {
+        $s = $s ?? '';
+        $s = trim(mb_strtolower($s, 'UTF-8'));
+        $s = strtr($s, ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n']);
+        $s = preg_replace('/\s+/', ' ', $s);
+        return $s;
     }
 }

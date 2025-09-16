@@ -30,7 +30,8 @@ ob_start(); ?>
           <label class="form-label">Cuadrante</label>
           <select name="cuadrante_id" class="form-select" id="cuadranteSelect" required>
             <option value="">-- Selecciona --</option>
-            <?php foreach ($cuadrantes as $c): ?>
+            <?php // Fallback inicial por si falla el fetch (se sobrescribe en JS si carga bien)
+            foreach ($cuadrantes as $c): ?>
               <option
                 value="<?= (int)$c['id'] ?>"
                 data-precio="<?= number_format((float)$c['precio'], 2, '.', '') ?>">
@@ -44,8 +45,8 @@ ob_start(); ?>
       <!-- Campo Dirección -->
       <div class="col-md-12 mb-3">
         <label class="form-label">Dirección (opcional)</label>
-        <input type="text" id="direccionInput" name="direccion" class="form-control" placeholder="Ej: Carrera 16 #45-23">
-        <div id="direccionMsg" class="form-text text-danger"></div>
+        <input type="text" id="direccionInput" name="direccion" class="form-control" placeholder="Ej: Carrera 50 45-23">
+        <div id="direccionMsg" class="form-text"></div>
       </div>
 
       <div class="mb-3">
@@ -117,30 +118,54 @@ $scripts = <<<'HTML'
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 <script>
 (async function(){
-  const sel = document.getElementById('cuadranteSelect');
+  const sel       = document.getElementById('cuadranteSelect');
   const montoView = document.getElementById('montoView');
   const montoHidden = document.getElementById('montoHidden');
+  const dirInput  = document.getElementById('direccionInput');
+  const msg       = document.getElementById('direccionMsg');
 
   // ===============================
-  // Actualizar monto
+  // Helpers
   // ===============================
+  function setMsg(kind, text){
+    msg.classList.remove('text-success','text-warning','text-danger');
+    if (kind) msg.classList.add(kind);
+    msg.textContent = text || '';
+  }
   function updateMonto(){
     const opt = sel.options[sel.selectedIndex];
     const precio = opt?.dataset?.precio ?? '0';
     const val = parseFloat(precio || '0').toFixed(2);
     montoView.textContent = '$' + val;
-    if (montoHidden) montoHidden.value = val; 
+    if (montoHidden) montoHidden.value = val;
   }
-  sel.addEventListener('change', updateMonto);
-  updateMonto(); 
+  function normalizeAddress(address) {
+    return address
+      .replace(/\s*#\s*/g, " ")
+      .replace(/\s+No\.?\s*/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  function optionFromProps(p){
+    const opt = document.createElement('option');
+    opt.value = p.id; // id interno (cuadrante_id)
+    opt.dataset.precio = p.precio ?? 0;
+    opt.textContent = p.nombre + (p.localidad ? (' — ' + p.localidad) : '');
+    return opt;
+  }
 
   // ===============================
   // Geocodificación con Nominatim
   // ===============================
   async function geocodeAddress(address) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}, Barranquilla, Colombia`;
+    const params = new URLSearchParams({
+      format: 'json',
+      limit: '1',
+      q: `${address}, Barranquilla, Colombia`
+    });
+    const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'AppDomicilios/1.0 (contacto@tuapp.com)' } });
       const data = await res.json();
       if (!data || data.length === 0) return null;
       return [parseFloat(data[0].lon), parseFloat(data[0].lat)]; // [lon, lat]
@@ -151,97 +176,72 @@ $scripts = <<<'HTML'
   }
 
   // ===============================
-  // Cargar cuadrantes del sistema
+  // Cargar GeoJSON unificado (DB + archivo)
   // ===============================
-  let cuadrantesSistema = [];
+  let fcCuadrantes = { type: 'FeatureCollection', features: [] };
   try {
-    const res = await fetch('/pedidos/cuadrantes-json'); 
-    cuadrantesSistema = await res.json(); // [{id, nombre, coords_json}, ...]
+    const res = await fetch('/pedidos/cuadrantes-geojson');
+    fcCuadrantes = await res.json();
   } catch(e) {
-    console.error("Error cargando cuadrantes", e);
+    console.error("Error cargando cuadrantes unificados", e);
   }
 
-// ===============================
-// Normalizar dirección
-// ===============================
-function normalizeAddress(address) {
-  return address
-    .replace(/\s*#\s*/g, " ")      // reemplaza "#" por espacio
-    .replace(/\s+No\.?\s*/gi, " ") // reemplaza "No." por espacio
-    .replace(/\s+/g, " ")          // espacios múltiples → uno
-    .trim();
-}
-
-// ===============================
-// Listener en dirección
-// ===============================
-document.getElementById('direccionInput').addEventListener('blur', async () => {
-  const dirRaw = document.getElementById('direccionInput').value.trim();
-  const msg = document.getElementById('direccionMsg');
-  if (!dirRaw) return;
-
-  msg.textContent = "Buscando coordenadas...";
-
-  // ✅ Normalizamos antes de buscar
-  const dir = normalizeAddress(dirRaw);
-
-  const coords = await geocodeAddress(dir);
-  if (!coords) {
-    msg.textContent = "No se pudo encontrar la dirección";
-    return;
+  // Popular el <select> SOLO con el GeoJSON unificado (si hay features)
+  if (Array.isArray(fcCuadrantes.features) && fcCuadrantes.features.length) {
+    sel.innerHTML = '<option value="">-- Selecciona --</option>';
+    fcCuadrantes.features.forEach(f => {
+      const p = f.properties || {};
+      sel.appendChild(optionFromProps(p));
+    });
   }
-
-  const point = turf.point(coords); // coords = [lon, lat]
-  let cuadrantesEncontrados = [];
-
-  for (const c of cuadrantesSistema) {
-    try {
-      const coordsArray = JSON.parse(c.coords_json); 
-      let polyCoords = coordsArray.map(p => [p[1], p[0]]); 
-
-      if (polyCoords[0][0] !== polyCoords.at(-1)[0] || polyCoords[0][1] !== polyCoords.at(-1)[1]) {
-        polyCoords.push(polyCoords[0]);
-      }
-
-      const polygon = turf.polygon([polyCoords]);
-
-      // ✅ Buffer de 100m
-      const buffered = turf.buffer(polygon, 0.1, { units: 'kilometers' });
-
-      if (turf.booleanPointInPolygon(point, buffered)) {
-        cuadrantesEncontrados.push(c);
-      }
-    } catch(e) { console.warn("Error procesando cuadrante", c, e); }
-  }
+  // listeners de monto
+  sel.addEventListener('change', updateMonto);
+  updateMonto();
 
   // ===============================
-  // Mostrar SIEMPRE todos los cuadrantes
+  // Listener en dirección (contención exacta, sin buffer)
   // ===============================
-  sel.innerHTML = '<option value="">-- Selecciona cuadrante --</option>';
-  cuadrantesSistema.forEach(c => {
-    sel.innerHTML += `<option value="${c.id}" data-precio="${c.precio ?? 0}">
-                        ${c.nombre}
-                      </option>`;
+  dirInput.addEventListener('blur', async () => {
+    const dirRaw = dirInput.value.trim();
+    if (!dirRaw) return;
+
+    setMsg(null, "Buscando coordenadas...");
+    const dir = normalizeAddress(dirRaw);
+    const coords = await geocodeAddress(dir);
+    if (!coords) {
+      setMsg('text-danger', "No se pudo encontrar la dirección");
+      return;
+    }
+
+    const point = turf.point(coords); // [lon, lat]
+
+    // Contención exacta
+    const encontrados = fcCuadrantes.features.filter(f => turf.booleanPointInPolygon(point, f));
+
+    if (encontrados.length) {
+      const detectado = encontrados[0];
+      const p = detectado.properties || {};
+      sel.value = p.id;
+      sel.dispatchEvent(new Event('change'));
+      setMsg('text-success', `Pertenece al cuadrante: ${p.nombre}${p.localidad ? ' — ' + p.localidad : ''} (puedes cambiarlo manualmente)`);
+      return;
+    }
+
+    // (Opcional) aviso de cercanía: <= 20 m al borde más cercano
+    let mejor = null, minDist = Infinity;
+    for (const f of fcCuadrantes.features) {
+      const line = turf.polygonToLine(f); // sirve para Polygon y MultiPolygon
+      const d = turf.pointToLineDistance(point, line, { units: 'meters' });
+      if (d < minDist) { minDist = d; mejor = f; }
+    }
+
+    if (minDist <= 20 && mejor) {
+      const p = (mejor.properties || {});
+      setMsg('text-warning', `La dirección está a ~${minDist.toFixed(0)} m del borde de ${p.nombre}. Revísalo.`);
+    } else {
+      setMsg('text-danger', "La dirección no pertenece a ningún cuadrante detectado. Selección manual.");
+    }
   });
-
-  if (cuadrantesEncontrados.length >= 1) {
-    // ✅ Seleccionar el primero detectado
-    const detectado = cuadrantesEncontrados[0];
-    sel.value = detectado.id;
-    sel.dispatchEvent(new Event('change'));
-
-    msg.classList.remove('text-danger','text-warning');
-    msg.classList.add('text-success');
-    msg.textContent = `Pertenece al cuadrante: ${detectado.nombre} (puedes cambiarlo manualmente)`;
-  } 
-  else {
-    // ❌ Ninguno encontrado → aviso rojo
-    msg.classList.remove('text-success');
-    msg.classList.add('text-danger');
-    msg.textContent = "La dirección no pertenece a ningún cuadrante detectado, selecciona uno manualmente";
-  }
-});
-
 
   // ===============================
   // Previsualizar factura

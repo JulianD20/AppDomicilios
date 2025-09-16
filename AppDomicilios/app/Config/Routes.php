@@ -50,7 +50,7 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->post('/pedidos/update/(:num)', 'PedidoController::update/$1');
     $routes->delete('/pedidos/delete/(:num)', 'PedidoController::delete/$1');
     $routes->get('/pedidos/factura/(:num)', 'PedidoController::factura/$1');
-    $routes->get('/pedidos/cuadrantes-json', 'PedidoController::cuadrantesJson');
+    $routes->get('/pedidos/cuadrantes-geojson', 'PedidoController::cuadrantesGeojson');
 
     // ----------------------------------------------------------------
     // NUEVO MÓDULO: Factor de pago
