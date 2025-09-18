@@ -6,17 +6,51 @@ use App\Models\CuadranteModel;
 
 class CuadranteController extends BaseController
 {
-// Listar todos los cuadrantes
+    // Listar con filtros y paginación
     public function index()
     {
+        $req = $this->request;
+
+        $q         = trim((string) $req->getGet('q'));
+        $estado    = (string) $req->getGet('estado');         // Activo | Inactivo | ''
+        $pmin      = $req->getGet('pmin');                    // precio mínimo
+        $pmax      = $req->getGet('pmax');                    // precio máximo
+        $perPage   = (int) ($req->getGet('per_page') ?? 10);
 
         $model = new CuadranteModel();
-        $data = [
-             'cuadrantes' => $model->orderBy('id', 'DESC')->findAll()
+
+        if ($q !== '') {
+            $model->groupStart()
+                ->like('nombre', $q)
+                ->orLike('localidad', $q)
+                ->orLike('barrios', $q)
+                ->groupEnd();
+        }
+
+        if ($estado !== '') {
+            $model->where('estado', $estado);
+        }
+
+        if ($pmin !== null && $pmin !== '' && is_numeric($pmin)) {
+            $model->where('precio >=', (float)$pmin);
+        }
+        if ($pmax !== null && $pmax !== '' && is_numeric($pmax)) {
+            $model->where('precio <=', (float)$pmax);
+        }
+
+        $model->orderBy('id', 'DESC');
+
+        $data['cuadrantes'] = $model->paginate($perPage);
+        $data['pager']      = $model->pager;
+        $data['filters']    = [
+            'q'       => $q,
+            'estado'  => $estado,
+            'pmin'    => $pmin,
+            'pmax'    => $pmax,
+            'perPage' => $perPage,
         ];
 
         return view('cuadrantes/index', $data);
-
     }
 
     // Mostrar formulario de creación

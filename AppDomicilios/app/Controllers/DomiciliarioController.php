@@ -6,15 +6,51 @@ use App\Models\DomiciliarioModel;
 
 class DomiciliarioController extends BaseController
 {
-    // Listar todos los domiciliarios
+    // Listar con filtros y paginación
     public function index()
     {
+        $request = $this->request;
+
+        $q      = trim((string) $request->getGet('q'));
+        $estado = (string) $request->getGet('estado');         
+        $desde  = (string) $request->getGet('desde');        
+        $hasta  = (string) $request->getGet('hasta');       
+        $perPage = (int) ($request->getGet('per_page') ?? 10); 
+
         $model = new DomiciliarioModel();
-        $data['domiciliarios'] = $model->paginate(10); // registros por página
-        $data['pager'] = $model->pager; // pasamos el paginador
+
+        // Construcción de filtros
+        if ($q !== '') {
+            $model->groupStart()
+                ->like('nombre', $q)
+                ->orLike('telefono', $q)
+                ->orLike('cedula', $q)
+                ->groupEnd();
+        }
+
+        if ($estado !== '') {
+            $model->where('estado', $estado);
+        }
+
+        if ($desde !== '') {
+            $model->where('DATE(fecha_ingreso) >=', $desde);
+        }
+
+        if ($hasta !== '') {
+            $model->where('DATE(fecha_ingreso) <=', $hasta);
+        }
+
+        $model->orderBy('fecha_ingreso', 'DESC');
+
+        $data['domiciliarios'] = $model->paginate($perPage);
+        $data['pager']         = $model->pager;
+
+        // Para re-poblar el form y mostrar chips activos
+        $data['filters'] = compact('q','estado','desde','hasta','perPage');
 
         return view('domiciliarios/index', $data);
     }
+
 
     // Mostrar formulario de creación
     public function create()

@@ -126,7 +126,7 @@
 
       <!-- LOGIN -->
       <div class="tab-pane fade show active" id="login" role="tabpanel">
-        <form method="post" action="<?= base_url('/auth/login') ?>">
+        <form method="post" action="<?= base_url('/auth/login') ?>" data-loading-submit>
           <?= csrf_field() ?>
 
           <div class="mb-3">
@@ -153,7 +153,7 @@
             <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
           </div>
 
-          <button type="submit" class="btn btn-brand w-100 mt-2">
+          <button type="submit" class="btn btn-brand w-100 mt-2" data-loading-text="Ingresando ⏳">
             <i class="fa-solid fa-sign-in-alt me-2"></i>Ingresar
           </button>
         </form>
@@ -213,4 +213,29 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form[data-loading-submit]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+
+        if (!form.checkValidity()) return;
+
+        const btn = form.querySelector('button[type="submit"], [type="submit"]');
+        if (!btn) return;
+
+        const loadingText = btn.dataset.loadingText || 'Cargando…';
+
+        btn.dataset.originalHtml = btn.innerHTML;
+
+        btn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          ${loadingText}
+        `;
+        btn.disabled = true;
+      }, { once: true }); 
+    });
+  });
+</script>
+
 

@@ -11,14 +11,65 @@ class PedidoController extends BaseController
 {
     public function index()
     {
-        $pedidoModel = new PedidoModel();
-        $data['pedidos'] = $pedidoModel->getWithRelations();
+        $req = $this->request;
 
-        $domModel = new DomiciliarioModel();
-        $data['domiciliarios'] = $domModel->where('estado', 'Activo')->orderBy('nombre', 'ASC')->findAll();
+        $q         = trim((string) $req->getGet('q'));
+        $estado    = (string) $req->getGet('estado');        // '' | 'pagado' | 'pendiente'
+        $domId     = (int) ($req->getGet('domiciliario_id') ?? 0);
+        $cuaId     = (int) ($req->getGet('cuadrante_id') ?? 0);
+        $desde     = (string) $req->getGet('desde');         // YYYY-MM-DD
+        $hasta     = (string) $req->getGet('hasta');         // YYYY-MM-DD
+        $mmin      = $req->getGet('mmin');                   // monto min
+        $mmax      = $req->getGet('mmax');                   // monto max
+        $perPage   = (int) ($req->getGet('per_page') ?? 10);
+
+        $pedidoModel = new \App\Models\PedidoModel();
+
+        // builder con joins
+        $builder = $pedidoModel->select('
+                pedidos.id, pedidos.direccion, pedidos.monto, pedidos.created_at, pedidos.pagado, pedidos.pagado_at,
+                d.nombre AS domiciliario, c.nombre AS cuadrante,
+                pedidos.domiciliario_id, pedidos.cuadrante_id
+            ')
+            ->join('domiciliarios d', 'd.id = pedidos.domiciliario_id', 'left')
+            ->join('cuadrantes c', 'c.id = pedidos.cuadrante_id', 'left');
+
+        if ($q !== '') {
+            $builder->groupStart()
+                ->like('d.nombre', $q)
+                ->orLike('c.nombre', $q)
+                ->orLike('pedidos.direccion', $q)
+                ->groupEnd();
+        }
+        if ($estado === 'pagado')    $builder->where('pedidos.pagado', 1);
+        if ($estado === 'pendiente') $builder->where('pedidos.pagado', 0);
+
+        if ($domId > 0) $builder->where('pedidos.domiciliario_id', $domId);
+        if ($cuaId > 0) $builder->where('pedidos.cuadrante_id', $cuaId);
+
+        if ($desde !== '') $builder->where('DATE(pedidos.created_at) >=', $desde);
+        if ($hasta !== '') $builder->where('DATE(pedidos.created_at) <=', $hasta);
+
+        if ($mmin !== null && $mmin !== '' && is_numeric($mmin)) $builder->where('pedidos.monto >=', (float)$mmin);
+        if ($mmax !== null && $mmax !== '' && is_numeric($mmax)) $builder->where('pedidos.monto <=', (float)$mmax);
+
+        $builder->orderBy('pedidos.id', 'DESC');
+
+        // usar paginate con builder manual
+        $data['pedidos'] = $builder->paginate($perPage);
+        $data['pager']   = $pedidoModel->pager;
+
+        // selects
+        $domModel = new \App\Models\DomiciliarioModel();
+        $cuaModel = new \App\Models\CuadranteModel();
+        $data['domiciliarios'] = $domModel->where('estado','Activo')->orderBy('nombre','ASC')->findAll();
+        $data['cuadrantes']    = $cuaModel->where('estado','Activo')->orderBy('nombre','ASC')->findAll();
+
+        $data['filters'] = compact('q','estado','domId','cuaId','desde','hasta','mmin','mmax','perPage');
 
         return view('pedidos/index', $data);
     }
+
 
     public function create()
     {
