@@ -61,6 +61,9 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
     $routes->get('/', 'FactorPagoController::index');
     $routes->get('factura-dia', 'FactorPagoController::facturaDia');
     $routes->post('pagar-dia', 'FactorPagoController::pagarDia');
-    $routes->post('config', 'FactorPagoController::updateConfig'); 
+    $routes->post('config', 'FactorPagoController::updateConfig');
+    // Factura y pago para varios domiciliarios
+    $routes->get('factura-dia-multiple', 'FactorPagoController::facturaDiaMultiple');
+    $routes->post('pagar-dia-multiple', 'FactorPagoController::pagarDiaMultiple'); 
     });
 });

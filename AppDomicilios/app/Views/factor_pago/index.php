@@ -96,32 +96,20 @@ ob_start(); ?>
           const pct = parseFloat(tr.querySelector('.percent').value || '0');
           if (from >= 1 && pct >= 0 && pct <= 100) {
             if (to !== null && to < from) return; // salta inválidos
-            rows.push({
-              from,
-              to,
-              percent: pct
-            });
+            rows.push({ from, to, percent: pct });
           }
         });
-        // ordenar por 'from'
         rows.sort((a, b) => a.from - b.from);
         return rows;
       }
 
-      function addRow(v = {
-        from: '',
-        to: '',
-        percent: 100
-      }) {
+      function addRow(v = { from: '', to: '', percent: 100 }) {
         body.insertAdjacentHTML('beforeend', rowTpl(v));
       }
 
       document.getElementById('addRow').addEventListener('click', () => addRow());
-
       body.addEventListener('click', (e) => {
-        if (e.target.classList.contains('del')) {
-          e.target.closest('tr').remove();
-        }
+        if (e.target.classList.contains('del')) e.target.closest('tr').remove();
       });
 
       document.getElementById('form-reglas').addEventListener('submit', (e) => {
@@ -131,26 +119,17 @@ ob_start(); ?>
           alert('Debes definir al menos un tramo.');
           return;
         }
-        // Nota: aceptamos solapes; en el cálculo se usa la PRIMERA regla que coincida.
         hidden.value = JSON.stringify(rows);
       });
 
       // Inicial
       if (initial && initial.length) render(initial);
-      else render([{
-          from: 1,
-          to: 1,
-          percent: 100
-        },
-        {
-          from: 2,
-          to: null,
-          percent: 50
-        },
+      else render([
+        { from: 1, to: 1,   percent: 100 },
+        { from: 2, to: null, percent: 50 },
       ]);
     })();
   </script>
-
 
   <div class="card-glass p-4">
     <p class="mb-0 text-muted">
@@ -160,37 +139,39 @@ ob_start(); ?>
   </div>
 </div>
 
-<!-- Modal Factura por día (EXCLUSIVO de este módulo) -->
+<!-- Modal Factura por día (MÚLTIPLE con Select2) -->
 <div class="modal fade" id="facturaDiaModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content card-glass">
       <div class="modal-header">
-        <h5 class="modal-title">Generar factura por día</h5>
+        <h5 class="modal-title">Generar factura por día (varios domiciliarios)</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
-      <form method="get" action="/factor-pago/factura-dia" data-loading-submit>
+      <!-- NUEVO: ruta múltiple -->
+      <form method="get" action="/factor-pago/factura-dia-multiple" data-loading-submit>
         <div class="modal-body">
 
           <?php if (session('fd_error')): ?>
-            <div class="alert alert-warning">
-              <?= esc(session('fd_error')) ?>
-            </div>
+            <div class="alert alert-warning"><?= esc(session('fd_error')) ?></div>
           <?php endif; ?>
 
           <div class="mb-3">
-            <label class="form-label">Domiciliario</label>
-            <?php $selDom = (int)(session('fd_domiciliario_id') ?? 0); ?>
-            <select name="domiciliario_id" class="form-select" required>
-              <option value="">-- Selecciona --</option>
+            <label class="form-label">Domiciliarios</label>
+            <?php
+              $selDoms = (array)(session('fd_domiciliario_ids') ?? []);
+              $selDoms = array_map('intval', $selDoms);
+            ?>
+            <select name="domiciliario_ids[]" class="form-select js-dom-multi" multiple required>
               <?php if (!empty($domiciliarios)): ?>
-                <?php foreach ($domiciliarios as $d): ?>
-                  <option value="<?= (int)$d['id'] ?>" <?= $selDom === (int)$d['id'] ? 'selected' : '' ?>>
+                <?php foreach ($domiciliarios as $d): $id=(int)$d['id']; ?>
+                  <option value="<?= $id ?>" <?= in_array($id, $selDoms, true) ? 'selected' : '' ?>>
                     <?= esc($d['nombre']) ?>
                   </option>
                 <?php endforeach; ?>
               <?php endif; ?>
             </select>
+            <div class="form-text">Escribe para buscar; selecciona varios.</div>
           </div>
 
           <div class="mb-3">
@@ -205,7 +186,7 @@ ob_start(); ?>
         </div>
 
         <div class="modal-footer">
-          <?= csrf_field() ?>
+          <?= csrf_field() /* En GET no es necesario, pero no afecta */ ?>
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
           <button type="submit" class="btn btn-brand btn-sm" data-loading-text="Generando ⏳">Generar</button>
         </div>
@@ -226,6 +207,32 @@ echo view('layouts/app', compact('content', 'title')); ?>
     });
   </script>
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const $select = $('.js-dom-multi');
+  if ($select.length) {
+    $select.select2({
+      width: '100%',
+      placeholder: 'Selecciona uno o varios',
+      allowClear: true,
+      closeOnSelect: false,
+      // clave: anclar el dropdown dentro del modal para evitar clipping de z-index
+      dropdownParent: $('#facturaDiaModal')
+    });
+
+    const modalEl = document.getElementById('facturaDiaModal');
+    modalEl?.addEventListener('shown.bs.modal', () => {
+      // Abrir el buscador al mostrar el modal (opcional)
+      $select.select2('open');
+      // Si no quieres abrirlo automáticamente, comenta la línea de arriba.
+    });
+    modalEl?.addEventListener('hide.bs.modal', () => {
+      $select.select2('close');
+    });
+  }
+});
+</script>
 
 <style>
   .card-glass {

@@ -201,4 +201,199 @@ class FactorPagoController extends BaseController
 
         return redirect()->to('/factor-pago')->with('success', 'Pedidos del día marcados como pagados.');
     }
+
+    protected function buildFacturaDeDomiciliario(int $domiciliarioId, string $fecha): ?array
+    {
+        $domModel    = new DomiciliarioModel();
+        $pedidoModel = new PedidoModel();
+
+        $dom = $domModel->find($domiciliarioId);
+        if (!$dom || ($dom['estado'] ?? '') !== 'Activo') {
+            return null;
+        }
+
+        // Solo pendientes del día
+        $pendientes = $pedidoModel->pedidosDeDia($domiciliarioId, $fecha, 0);
+
+        // Corridas ya hechas HOY (sobre pedidos de ese día)
+        $corridasPrevias = $pedidoModel->corridasEnDia($domiciliarioId, $fecha);
+
+        if (empty($pendientes)) {
+            return [
+                'domiciliarioId'  => $domiciliarioId,
+                'domiciliario'    => $dom['nombre'] ?? 'N/D',
+                'fecha'           => $fecha,
+                'corridaNumero'   => $corridasPrevias + 1,
+                'reglaPago'       => '',
+                'pedidos'         => [],
+                'total'           => 0.0,
+                'sin_pedidos'     => true,
+                'mensaje'         => ($corridasPrevias > 0)
+                    ? "No hay pedidos pendientes (ya van {$corridasPrevias} corridas de pago hoy)."
+                    : "No se encontraron pedidos."
+            ];
+        }
+
+        // Orden por created_at asc y id
+        usort($pendientes, static function ($a, $b) {
+            $ta = strtotime($a['created_at'] ?? '1970-01-01 00:00:00');
+            $tb = strtotime($b['created_at'] ?? '1970-01-01 00:00:00');
+            return ($ta === $tb)
+                ? (((int)($a['id'] ?? 0)) <=> ((int)($b['id'] ?? 0)))
+                : ($ta <=> $tb);
+        });
+
+        // Reglas
+        $rules    = $this->getRules();
+        $aplicar  = function (int $nroPedido, float $base) use ($rules): array {
+            foreach ($rules as $r) {
+                $from = (int)$r['from'];
+                $to   = $r['to'] === null ? PHP_INT_MAX : (int)$r['to'];
+                if ($nroPedido >= $from && $nroPedido <= $to) {
+                    $pct = max(0.0, min(100.0, (float)$r['percent']));
+                    return [$base * ($pct / 100.0), $pct];
+                }
+            }
+            return [$base, 100.0];
+        };
+
+        $calc = [];
+        $sum  = 0.0;
+        foreach ($pendientes as $idx => $p) {
+            $base = (float)($p['monto'] ?? 0);
+            $nro  = $idx + 1;
+            [$monto, $pct] = $aplicar($nro, $base);
+
+            $p['nro_en_dia']          = $nro;
+            $p['porcentaje_aplicado'] = $pct;
+            $p['monto_calculado']     = $monto;
+
+            $calc[] = $p;
+            $sum += $monto;
+        }
+
+        $cfgModel  = new FactorPagoConfigModel();
+        $reglaPago = $cfgModel->summarize($rules);
+
+        return [
+            'domiciliarioId'  => $domiciliarioId,
+            'domiciliario'    => $dom['nombre'] ?? 'N/D',
+            'fecha'           => $fecha,
+            'corridaNumero'   => $corridasPrevias + 1,
+            'reglaPago'       => $reglaPago,
+            'pedidos'         => $calc,
+            'total'           => $sum,
+            'sin_pedidos'     => false,
+        ];
+    }
+
+    // === NUEVO: vista consolidada para varios domiciliarios ===
+    public function facturaDiaMultiple()
+    {
+        $ids   = (array)($this->request->getGet('domiciliario_ids') ?? []);
+        $fecha = (string)$this->request->getGet('fecha');
+
+        // Sanitizar
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_filter($ids, fn($v) => $v > 0);
+
+        if (empty($ids) || $fecha === '') {
+            return redirect()->to('/factor-pago')
+                ->with('showFacturaDiaModal', true)
+                ->with('fd_error', 'Debes seleccionar al menos un domiciliario y una fecha.');
+        }
+
+        // === CASO 1: Solo 1 domiciliario -> usar vista individual
+        if (count($ids) === 1) {
+            $domId = $ids[0];
+            $f = $this->buildFacturaDeDomiciliario($domId, $fecha);
+
+            if (!$f) {
+                return redirect()->to('/factor-pago')
+                    ->with('showFacturaDiaModal', true)
+                    ->with('fd_error', 'El domiciliario no existe o no está activo.')
+                    ->with('fd_domiciliario_ids', [$domId])
+                    ->with('fd_fecha', $fecha);
+            }
+            if (!empty($f['sin_pedidos'])) {
+                return redirect()->to('/factor-pago')
+                    ->with('showFacturaDiaModal', true)
+                    ->with('fd_error', $f['mensaje'] ?? 'No hay pedidos pendientes para ese día.')
+                    ->with('fd_domiciliario_ids', [$domId])
+                    ->with('fd_fecha', $fecha);
+            }
+
+            // La vista individual espera estas claves:
+            return view('factor_pago/factura_dia', [
+                'fecha'          => $fecha,
+                'domiciliario'   => $f['domiciliario'],
+                'domiciliarioId' => $f['domiciliarioId'],
+                'pedidos'        => $f['pedidos'],
+                'total'          => (float)$f['total'],
+                'corridaNumero'  => (int)$f['corridaNumero'],
+                'reglaPago'      => (string)$f['reglaPago'],
+                'factorPago'     => null, // usamos % por pedido; la vista ya lo soporta
+            ]);
+        }
+
+        // === CASO 2: Varios domiciliarios -> vista consolidada
+        $facturas   = [];
+        $granTotal  = 0.0;
+        $conPedidos = 0;
+
+        foreach ($ids as $domId) {
+            $f = $this->buildFacturaDeDomiciliario($domId, $fecha);
+            if ($f) {
+                $facturas[] = $f;
+                if (empty($f['sin_pedidos'])) {
+                    $granTotal += (float)$f['total'];
+                    $conPedidos++;
+                }
+            }
+        }
+
+        if ($conPedidos === 0) {
+            return redirect()->to('/factor-pago')
+                ->with('showFacturaDiaModal', true)
+                ->with('fd_domiciliario_ids', $ids)
+                ->with('fd_fecha', $fecha)
+                ->with('fd_error', 'No hay pedidos pendientes para los domiciliarios seleccionados en esa fecha.');
+        }
+
+        return view('factor_pago/factura_dia_multiple', [
+            'fecha'     => $fecha,
+            'facturas'  => $facturas,
+            'granTotal' => $granTotal,
+            'ids'       => $ids,
+        ]);
+    }
+
+
+    // === NUEVO: marcar pagados para varios domiciliarios ===
+    public function pagarDiaMultiple()
+    {
+        $ids   = (array)$this->request->getPost('domiciliario_ids');
+        $fecha = (string)$this->request->getPost('fecha');
+
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $ids = array_filter($ids, fn($v)=> $v > 0);
+
+        if (empty($ids) || $fecha === '') {
+            return redirect()->back()->with('error', 'Datos incompletos.');
+        }
+
+        $inicioUTC = \CodeIgniter\I18n\Time::parse($fecha.' 00:00:00', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
+        $finUTC    = \CodeIgniter\I18n\Time::parse($fecha.' 23:59:59', 'America/Bogota')->setTimezone('UTC')->toDateTimeString();
+
+        $pedidoModel = new PedidoModel();
+        // Un único update por lote
+        $pedidoModel->whereIn('domiciliario_id', $ids)
+            ->where('created_at >=', $inicioUTC)
+            ->where('created_at <=', $finUTC)
+            ->where('pagado', 0)
+            ->set(['pagado' => 1, 'pagado_at' => date('Y-m-d H:i:s')])
+            ->update();
+
+        return redirect()->to('/pedidos')->with('success', 'Pedidos del día marcados como pagados para los domiciliarios seleccionados.');
+    }
 }

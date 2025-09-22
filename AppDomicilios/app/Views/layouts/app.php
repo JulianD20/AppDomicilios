@@ -16,6 +16,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
+  <!-- Select2 (CSS) - NUEVO -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+  <style>
+    /* Fix de z-index para que el dropdown de Select2 quede encima del modal Bootstrap */
+    .select2-container .select2-dropdown {
+      z-index: 2000;
+    }
+  </style>
+
   <style>
     :root {
       --brand: #FF6B00;
@@ -176,16 +185,16 @@
 </head>
 
 <body>
-  
+
   <!-- Banners/Toasts/Modales de feedback -->
   <?= view('partials/feedback_alert') ?>
   <?= view('partials/feedback_toast') ?>
   <?= view('partials/feedback_modal') ?>
 
-  <!-- Contenido -->
+  <!-- Contenido por secciones (si alguna vista usa sections) -->
   <?= $this->renderSection('content') ?>
 
-  <!-- Bootstrap 5 JS (bundle con Popper) y nuestro JS -->
+  <!-- Nuestro JS propio (defer) -->
   <script src="<?= base_url('assets/js/ui-bootstrap.js') ?>" defer></script>
 
   <!-- Sidebar -->
@@ -221,10 +230,15 @@
     <?= $content ?? '' ?>
   </main>
 
-  <!-- Scripts -->
+  <!-- Scripts base -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- jQuery + Select2 (NUEVO) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.full.min.js"></script>
+
+  <!-- Scripts inyectados desde vistas/controladores -->
   <?= isset($scripts) ? $scripts : '' ?>
 </body>
 
